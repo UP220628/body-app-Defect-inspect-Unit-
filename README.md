@@ -1,0 +1,1 @@
+Web app diseñada para tenr una visibilidad en la parte de planchas para madrinas enfocada en la deteccion y trazabilidad de la reparacion 
