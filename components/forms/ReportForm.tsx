@@ -336,6 +336,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
               <p className="text-gray-600 text-sm">Total: <span className="font-semibold text-gray-900">{defects.length}</span></p>
             </div>
             <Button
+              type="button"
               onClick={() => setIsDefectModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 md:gap-2 text-sm md:text-base px-3 py-2 md:px-4 md:py-2"
             >
@@ -389,7 +390,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
         <div className="flex justify-center gap-4">
           <Button
             type="submit"
-            disabled={defects.length === 0 || isSubmitting || (vin.length > 0 && vin.length !== 17)}
+            disabled={defects.length === 0 || isSubmitting || (!!vin && vin.length !== 17)}
             className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 md:px-8 md:py-3 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
           >
             {isSubmitting ? (
