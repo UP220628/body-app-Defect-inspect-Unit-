@@ -336,7 +336,6 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
               <p className="text-gray-600 text-sm">Total: <span className="font-semibold text-gray-900">{defects.length}</span></p>
             </div>
             <Button
-              type="button"
               onClick={() => setIsDefectModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 md:gap-2 text-sm md:text-base px-3 py-2 md:px-4 md:py-2"
             >
