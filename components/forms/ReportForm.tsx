@@ -390,7 +390,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
         <div className="flex justify-center gap-4">
           <Button
             type="submit"
-            disabled={defects.length === 0 || isSubmitting || (!!vin && vin.length !== 17)}
+            disabled={defects.length === 0 || isSubmitting || (vin.length > 0 && vin.length !== 17)}
             className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 md:px-8 md:py-3 text-base md:text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
           >
             {isSubmitting ? (
