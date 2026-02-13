@@ -62,7 +62,7 @@ export const Header = () => {
       </nav>
 
       {/* Notification Bell - visible en desktop y mobile */}
-      <div className="mr-2 md:mr-4">
+      <div className="ml-auto md:ml-0 mr-2 md:mr-4">
         <NotificationBell />
       </div>
 
