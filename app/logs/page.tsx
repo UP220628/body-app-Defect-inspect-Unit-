@@ -207,20 +207,21 @@ export default function Page (){
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
               <div className="flex-1">
                 <Input placeholder="Buscar VIN" value={vin} onChange={(e) => setVin(e.target.value)} />
               </div>
-              <Button
-                onClick={handleExportToExcel}
-                className="bg-green-600 text-white px-3 py-2 md:px-4 md:py-2 rounded-md hover:bg-green-700 flex items-center gap-2 shadow-sm text-xs md:text-sm"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <span className="hidden sm:inline">Exportar a Excel</span>
-                <span className="sm:hidden">Exportar</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleExportToExcel}
+                  className="bg-green-600 text-white px-3 py-2 md:px-4 md:py-2 rounded-md hover:bg-green-700 flex items-center justify-center gap-1.5 shadow-sm text-xs md:text-sm flex-1 sm:flex-none whitespace-nowrap"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4 flex-shrink-0">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span className="hidden sm:inline">Exportar a Excel</span>
+                  <span className="sm:hidden">Excel</span>
+                </Button>
               <div className="relative">
                 <button
                   aria-label="Opciones"

@@ -12,8 +12,8 @@ export default function HomePage() {
       <div className="min-h-screen flex flex-col bg-red-50">
         <Header />
 
-        <main className="flex-1 grid place-items-center px-6">
-          <div className="bg-stone-50 rounded-xl p-12 shadow-sm w-full max-w-2xl">
+        <main className="flex-1 grid place-items-center px-4 sm:px-6 py-4 sm:py-6">
+          <div className="bg-stone-50 rounded-xl p-4 sm:p-8 md:p-12 shadow-sm w-full max-w-2xl">
             <ReportForm />
           </div>
         </main>

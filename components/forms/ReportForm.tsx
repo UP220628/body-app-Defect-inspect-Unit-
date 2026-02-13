@@ -331,22 +331,22 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
         </div>
 
         {/* Sección de defectos */}
-        <div className="bg-gray-50 p-6 rounded-lg space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="bg-gray-50 p-3 sm:p-4 md:p-6 rounded-lg space-y-4">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Defectos Detectados</h3>
-              <p className="text-gray-600 text-sm">Total: <span className="font-semibold text-gray-900">{defects.length}</span></p>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Defectos Detectados</h3>
+              <p className="text-gray-600 text-xs sm:text-sm">Total: <span className="font-semibold text-gray-900">{defects.length}</span></p>
             </div>
             <Button
               type="button"
               onClick={() => setIsDefectModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 md:gap-2 text-sm md:text-base px-3 py-2 md:px-4 md:py-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm md:text-base px-2 py-1.5 sm:px-3 sm:py-2 md:px-4 md:py-2 whitespace-nowrap"
             >
-              <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="hidden sm:inline">Agregar Defecto</span>
-              <span className="sm:hidden">Agregar</span>
+              <span className="hidden xs:inline">Agregar</span>
+              <span className="xs:hidden">+</span>
             </Button>
           </div>
 
