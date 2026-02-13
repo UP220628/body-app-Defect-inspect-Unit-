@@ -200,20 +200,20 @@ export default function Page() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-gray-100 rounded-lg p-1">
+        <div className="flex gap-2 mb-6 bg-gray-100 rounded-lg p-1 overflow-x-auto">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 min-w-[140px] py-2.5 px-3 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                 activeTab === tab.key
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              {tab.label}
+              <span className="block sm:inline">{tab.label}</span>
               {tab.count !== undefined && (
-                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                <span className={`ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
                   activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
                 }`}>
                   {tab.count}
@@ -393,35 +393,35 @@ export default function Page() {
         }
       >
         {selected && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
               <div>
-                <p className="text-sm text-gray-600">Mercado</p>
-                <p className="font-semibold">{selected.market}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Mercado</p>
+                <p className="font-semibold text-sm sm:text-base">{selected.market}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">VIN</p>
-                <p className="font-mono font-semibold text-sm">{selected.vin}</p>
+                <p className="text-xs sm:text-sm text-gray-600">VIN</p>
+                <p className="font-mono font-semibold text-xs sm:text-sm break-all">{selected.vin}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Carril</p>
-                <p className="font-semibold">{selected.lane}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Carril</p>
+                <p className="font-semibold text-sm sm:text-base">{selected.lane}</p>
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">Defectos Asignados ({(selected.defects||[]).length})</h3>
+              <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <h3 className="font-semibold text-sm sm:text-base text-gray-900">Defectos Asignados ({(selected.defects||[]).length})</h3>
               </div>
               {(selected.defects||[]).length > 0 ? (
-                <div className="space-y-2 p-4 bg-gray-50 rounded-lg max-h-40 overflow-y-auto">
+                <div className="space-y-2 p-2 sm:p-4 bg-gray-50 rounded-lg max-h-40 overflow-y-auto">
                   {(selected.defects || []).map((d) => (
                     <div key={d.id} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded hover:border-blue-300 hover:bg-blue-50 transition">
-                      <div>
-                        <p className="font-semibold text-sm">{d.type}</p>
-                        <p className="text-xs text-gray-600">{d.zone}</p>
+                      <div className="flex-1 min-w-0 mr-2">
+                        <p className="font-semibold text-xs sm:text-sm truncate">{d.type}</p>
+                        <p className="text-[10px] sm:text-xs text-gray-600 truncate">{d.zone}</p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                         <GradeBadge grade={d.grade}>{d.grade}</GradeBadge>
                         <button onClick={() => setEditingDefect(d)} className="text-blue-600 hover:text-blue-800 font-bold text-sm transition" title="Editar severidad">✎</button>
                       </div>
@@ -429,21 +429,21 @@ export default function Page() {
                   ))}
                 </div>
               ) : (
-                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <p className="text-sm text-yellow-800">Sin defectos asignados aún. Agrega al menos uno para continuar.</p>
+                <div className="p-3 sm:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <p className="text-xs sm:text-sm text-yellow-800">Sin defectos asignados aún. Agrega al menos uno para continuar.</p>
                 </div>
               )}
             </div>
 
-            <div className="border-t pt-4">
-              <h3 className="font-semibold mb-3 text-gray-900">Agregar Defecto</h3>
-              <div className="space-y-3 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div className="border-t pt-3 sm:pt-4">
+              <h3 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base text-gray-900">Agregar Defecto</h3>
+              <div className="space-y-2 sm:space-y-3 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Tipo de Defecto</label>
+                  <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Tipo de Defecto</label>
                   <select 
                     value={newDefect.type} 
                     onChange={(e) => setNewDefect({...newDefect, type: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     {defectTypes.map(t => (
                       <option key={t} value={t}>{t}</option>
@@ -451,11 +451,11 @@ export default function Page() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Zona</label>
+                  <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Zona</label>
                   <select 
                     value={newDefect.zone} 
                     onChange={(e) => setNewDefect({...newDefect, zone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
                     {zones.map(z => (
                       <option key={z} value={z}>{z}</option>
@@ -463,14 +463,14 @@ export default function Page() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold mb-2">Severidad</label>
+                  <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Severidad</label>
                   <div className="grid grid-cols-3 gap-2">
                     {grades.map(g => (
                       <button
                         key={g}
                         type="button"
                         onClick={() => setNewDefect({...newDefect, grade: g})}
-                        className={`py-3 rounded-lg font-bold text-sm transition-all shadow-md ${
+                        className={`py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm transition-all shadow-md ${
                           newDefect.grade === g
                             ? g === 'V1' ? 'bg-red-500 text-white border-2 border-red-600 shadow-lg scale-105' : g === 'V2' ? 'bg-amber-500 text-white border-2 border-amber-600 shadow-lg scale-105' : 'bg-blue-500 text-white border-2 border-blue-600 shadow-lg scale-105'
                             : 'bg-gray-200 text-gray-700 border-2 border-gray-300 hover:bg-gray-300'
@@ -480,9 +480,9 @@ export default function Page() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-600 mt-3 p-2 bg-blue-50 rounded">V1=Grave (obligatorio Body) | V2=Moderado (Body o Liberar) | V3=Leve (Liberable)</p>
+                  <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2=Moderado (Body o Liberar) | V3=Leve (Liberable)</p>
                 </div>
-                <Button onClick={handleAddDefect} className="w-full px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md transition-all rounded-lg">
+                <Button onClick={handleAddDefect} className="w-full px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md transition-all rounded-lg">
                   <span className="hidden sm:inline">+ Agregar Defecto</span>
                   <span className="sm:hidden">+ Agregar</span>
                 </Button>
@@ -509,22 +509,22 @@ export default function Page() {
         }
       >
         {editingDefect && (
-          <div className="space-y-4">
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 mb-1">Defecto</p>
-              <p className="font-semibold">{editingDefect.type}</p>
-              <p className="text-xs text-gray-600">Zona: {editingDefect.zone}</p>
-              <p className="text-xs text-gray-600">Severidad actual: <span className="font-bold text-blue-600">{editingDefect.grade}</span></p>
+          <div className="space-y-3 sm:space-y-4">
+            <div className="p-2 sm:p-3 bg-gray-50 rounded-lg">
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Defecto</p>
+              <p className="font-semibold text-sm sm:text-base">{editingDefect.type}</p>
+              <p className="text-[10px] sm:text-xs text-gray-600">Zona: {editingDefect.zone}</p>
+              <p className="text-[10px] sm:text-xs text-gray-600">Severidad actual: <span className="font-bold text-blue-600">{editingDefect.grade}</span></p>
             </div>
             <div>
-              <label className="block text-sm font-semibold mb-3">Nueva Severidad</label>
+              <label className="block text-xs sm:text-sm font-semibold mb-2 sm:mb-3">Nueva Severidad</label>
               <div className="grid grid-cols-3 gap-2">
                 {grades.map(g => (
                   <button
                     key={g}
                     type="button"
                     onClick={() => setEditingDefect({ ...editingDefect, grade: g })}
-                    className={`py-3 rounded-lg font-bold text-sm transition-all shadow-md ${
+                    className={`py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm transition-all shadow-md ${
                       editingDefect.grade === g
                         ? g === 'V1' ? 'bg-red-500 text-white border-2 border-red-600 shadow-lg scale-105' : g === 'V2' ? 'bg-amber-500 text-white border-2 border-amber-600 shadow-lg scale-105' : 'bg-blue-500 text-white border-2 border-blue-600 shadow-lg scale-105'
                         : 'bg-gray-200 text-gray-700 border-2 border-gray-300 hover:bg-gray-300'
