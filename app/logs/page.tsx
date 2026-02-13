@@ -252,6 +252,7 @@ export default function Page (){
                 )}
               </div>
             </div>
+            </div>
           </CardHeader>
         </Card>
 
