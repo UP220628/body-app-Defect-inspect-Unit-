@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal';
 import { GradeBadge } from '@/components/units/GradeBadge';
 import { StatusBadge } from '@/components/units/StatusBadge';
 import { Badge } from '@/components/ui/Badge';
+import { ReportForm } from '@/components/forms/ReportForm';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
@@ -35,7 +36,7 @@ type Unit = {
   defects?: Defect[];
 };
 
-type TabKey = 'nivelacion' | 'entregar' | 'liberar';
+type TabKey = 'nivelacion' | 'entregar' | 'liberar' | 'Reportar unidad';
 
 export default function Page() {
   const { user, token } = useAuth();
@@ -144,7 +145,8 @@ export default function Page() {
     }
   };
 
-  const tabs: { key: TabKey; label: string; count: number }[] = [
+  const tabs: { key: TabKey; label: string; count?: number }[] = [
+    { key: 'Reportar unidad', label: 'Reportar Unidad' },
     { key: 'nivelacion', label: 'Nivelación', count: reportedUnits.length },
     { key: 'entregar', label: 'Entregar a Body', count: sentUnits.length },
     { key: 'liberar', label: 'Liberar WWS', count: releasedUnits.length },
@@ -198,37 +200,51 @@ export default function Page() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1">
+        <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1 overflow-x-auto">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
+              className={`flex-shrink-0 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
                 activeTab === tab.key
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               {tab.label}
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
-              }`}>
-                {tab.count}
-              </span>
+              {tab.count !== undefined && (
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+                  activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         {/* Contenido por tab */}
-        <Card>
-          <CardHeader>
-            <h2 className="text-lg font-semibold">
-              {activeTab === 'nivelacion' && 'Unidades Reportadas — Nivelación de Defectos'}
-              {activeTab === 'entregar' && 'Unidades Niveladas — Confirmar Entrega a Body'}
-              {activeTab === 'liberar' && 'Unidades Liberadas por Body — Confirmar Liberación WWS'}
-            </h2>
-          </CardHeader>
-          <CardBody>
+        {activeTab === 'Reportar unidad' ? (
+          <div className="bg-stone-50 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Reportar Unidad con Daño Detectado</h2>
+              <p className="text-sm text-gray-600">
+                Usa este formulario cuando WWS detecte un daño antes que el carrier. 
+                Se notificará al proveedor seleccionado para el tracking de la unidad.
+              </p>
+            </div>
+            <ReportForm includeProvider={true} />
+          </div>
+        ) : (
+          <Card>
+            <CardHeader>
+              <h2 className="text-lg font-semibold">
+                {activeTab === 'nivelacion' && 'Unidades Reportadas — Nivelación de Defectos'}
+                {activeTab === 'entregar' && 'Unidades Niveladas — Confirmar Entrega a Body'}
+                {activeTab === 'liberar' && 'Unidades Liberadas por Body — Confirmar Liberación WWS'}
+              </h2>
+            </CardHeader>
+            <CardBody>
             {currentUnits.length === 0 ? (
               <div className="py-12 text-center text-gray-500">
                 <p className="text-lg">No hay unidades en esta sección</p>
@@ -300,6 +316,7 @@ export default function Page() {
             )}
           </CardBody>
         </Card>
+        )}
       </main>
 
       {/* Modal - Asignar defectos y decidir acción (solo tab nivelación) */}

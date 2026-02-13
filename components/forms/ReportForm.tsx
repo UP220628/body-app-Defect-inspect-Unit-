@@ -209,13 +209,16 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       }
 
       // Éxito: Limpiar formulario
-      alert(`Unidad reportada`);
+      alert(`Unidad reportada exitosamente`);
       setVin('');
       setMercado('');
       setCarril('');
       setCarrilError('');
       setProviderId(null);
       setDefects([]);
+
+      // Disparar evento para actualizar listas en otras páginas
+      window.dispatchEvent(new CustomEvent('unitStatusChanged'));
 
     } catch (error: any) {
       alert(`Error al reportar la unidad: ${error.message}`);
