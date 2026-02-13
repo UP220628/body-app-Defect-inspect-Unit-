@@ -53,8 +53,24 @@ export const BarcodeScanner = ({ isOpen, onClose, onScan, title = 'Escanear Cód
         return;
       }
 
-      // Usar la primera cámara disponible (o la trasera si está disponible)
-      const selectedDeviceId = videoInputDevices[0].deviceId;
+      // Buscar preferentemente la cámara trasera
+      // En dispositivos móviles, buscar labels que contengan "back", "rear" o "environment"
+      let selectedDeviceId = videoInputDevices[0].deviceId;
+      
+      const backCamera = videoInputDevices.find(device => 
+        device.label.toLowerCase().includes('back') ||
+        device.label.toLowerCase().includes('rear') ||
+        device.label.toLowerCase().includes('environment') ||
+        device.label.toLowerCase().includes('trasera')
+      );
+      
+      if (backCamera) {
+        selectedDeviceId = backCamera.deviceId;
+      } else if (videoInputDevices.length > 1) {
+        // Si no encontramos por etiqueta, usar la última cámara
+        // En móviles, la última suele ser la trasera
+        selectedDeviceId = videoInputDevices[videoInputDevices.length - 1].deviceId;
+      }
 
       // Iniciar escaneo continuo
       codeReader.decodeFromVideoDevice(
@@ -107,7 +123,6 @@ export const BarcodeScanner = ({ isOpen, onClose, onScan, title = 'Escanear Cód
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
-            style={{ transform: 'scaleX(-1)' }}
           />
           
           {/* Overlay con guía de escaneo */}
