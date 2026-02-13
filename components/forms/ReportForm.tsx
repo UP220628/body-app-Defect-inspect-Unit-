@@ -39,6 +39,8 @@ const gradeColors: Record<Grade, string> = {
   V2: 'bg-yellow-100 text-yellow-800',
 };
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+
 export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   const { user } = useAuth();
   const [vin, setVin] = useState('');
@@ -63,7 +65,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
 
   const fetchProviders = async () => {
     try {
-      const response = await fetch('http://localhost:3001/providers');
+      const response = await fetch(`${API_BASE}/providers`);
       const data = await response.json();
       if (data.ok) {
         setProviders(data.data);
@@ -167,7 +169,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
         unitPayload.providerId = providerId;
       }
       
-      const unitResponse = await fetch('http://localhost:3001/units', {
+      const unitResponse = await fetch(`${API_BASE}/units`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -186,7 +188,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
 
       // Paso 2: Agregar cada defecto a la unidad
       for (const defect of defects) {
-        const defectResponse = await fetch(`http://localhost:3001/units/${unitId}/defects`, {
+        const defectResponse = await fetch(`${API_BASE}/units/${unitId}/defects`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
