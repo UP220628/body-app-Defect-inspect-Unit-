@@ -310,8 +310,9 @@ export const NotificationBell = () => {
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         title="Notificaciones del Sistema"
+        size="md"
       >
-        <div className="space-y-3 max-h-96 overflow-y-auto">
+        <div className="space-y-3 max-h-[60vh] sm:max-h-96 overflow-y-auto">
           {notifications.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No hay notificaciones nuevas</p>
@@ -324,22 +325,22 @@ export const NotificationBell = () => {
               return (
                 <div
                   key={notification.id}
-                  className={`border-l-4 ${toneColor(meta.tone)} p-4 rounded-r-lg relative`}
+                  className={`border-l-4 ${toneColor(meta.tone)} p-3 sm:p-4 rounded-r-lg relative`}
                 >
                   <button
                     type="button"
                     aria-label="Eliminar notificacion"
-                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-700"
+                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-700 w-6 h-6 flex items-center justify-center text-lg"
                     onClick={() => handleDeleteNotification(notification.id)}
                   >
                     ✕
                   </button>
-                  <div className="flex items-start justify-between pr-6">
+                  <div className="flex items-start justify-between pr-8">
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-900 mb-1">
+                      <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
                         {meta.title}
                       </p>
-                      <p className="text-sm text-gray-700">
+                      <p className="text-xs sm:text-sm text-gray-700">
                         {notification.message || 'Sin detalle'}
                       </p>
                       <p className="text-xs text-gray-500 mt-2">
@@ -347,7 +348,7 @@ export const NotificationBell = () => {
                       </p>
                     </div>
                     <span
-                      className={`inline-block w-3 h-3 rounded-full ${toneDot(meta.tone)}`}
+                      className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${toneDot(meta.tone)}`}
                     ></span>
                   </div>
                 </div>

@@ -61,14 +61,14 @@ export const Header = () => {
         ))}
       </nav>
 
-      {/* Notification Bell */}
-      <div className="hidden md:block mr-4">
+      {/* Notification Bell - visible en desktop y mobile */}
+      <div className="mr-2 md:mr-4">
         <NotificationBell />
       </div>
 
       {/* Mobile menu button */}
       <button
-        className="ml-auto md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md"
+        className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md"
         aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
         aria-expanded={mobileOpen}
         onClick={() => {
