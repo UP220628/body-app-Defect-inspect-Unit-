@@ -140,7 +140,6 @@ export const RepairTimelineWidget = () => {
       <Card>
         <CardHeader>
           <h2 className="text-xl font-bold text-gray-900">
-            <span className="mr-2">⏱️</span>
             Línea de Tiempo de Reparaciones
           </h2>
           <p className="text-sm text-gray-600">Tiempos estimados de finalización</p>
@@ -157,14 +156,12 @@ export const RepairTimelineWidget = () => {
       <Card>
         <CardHeader>
           <h2 className="text-xl font-bold text-gray-900">
-            <span className="mr-2">⏱️</span>
             Línea de Tiempo de Reparaciones
           </h2>
           <p className="text-sm text-gray-600">Tiempos estimados de finalización</p>
         </CardHeader>
         <CardBody>
           <div className="text-center py-8">
-            <div className="text-6xl mb-4">✅</div>
             <p className="text-gray-600 font-medium">No hay unidades en reparación actualmente</p>
             <p className="text-sm text-gray-500 mt-2">Las unidades en proceso aparecerán aquí</p>
           </div>
@@ -179,7 +176,6 @@ export const RepairTimelineWidget = () => {
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900">
-              <span className="mr-2">⏱️</span>
               Línea de Tiempo de Reparaciones
             </h2>
             <p className="text-sm text-gray-600">
@@ -240,7 +236,7 @@ export const RepairTimelineWidget = () => {
                     <div>
                       <p className="text-xs text-gray-600 mb-1">Horas Estimadas</p>
                       <p className="font-semibold text-gray-900">
-                        {unit.estimatedRepairHours.toFixed(1)}h
+                        {typeof unit.estimatedRepairHours === 'number' ? unit.estimatedRepairHours.toFixed(1) : '0.0'}h
                       </p>
                     </div>
                     <div>
@@ -271,7 +267,7 @@ export const RepairTimelineWidget = () => {
             <div>
               <p className="text-xs text-gray-600 mb-1">Total de Horas</p>
               <p className="text-2xl font-bold text-gray-900">
-                {units.reduce((acc, u) => acc + u.estimatedRepairHours, 0).toFixed(1)}h
+                {units.reduce((acc, u) => acc + (typeof u.estimatedRepairHours === 'number' ? u.estimatedRepairHours : 0), 0).toFixed(1)}h
               </p>
             </div>
             <div>
