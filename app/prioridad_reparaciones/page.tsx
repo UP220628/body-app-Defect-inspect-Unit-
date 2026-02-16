@@ -20,9 +20,7 @@ import ProtectedRoute from "@/components/layout/ProtectedRoute";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
-// Tipos locales para manejar prioridades y unidades
-
-type PriorityLevel = "ALTA" | "MEDIA" | "BAJA";
+// Tipos locales para manejar unidades
 
 type UnitStatus = "RECEIVED" | "IN_REPAIR";
 
@@ -41,15 +39,8 @@ type Unit = {
   status: UnitStatus;
   reportedAt: string;
   defects: Defect[];
-  priority?: PriorityLevel;
   priorityNote?: string;
   priorityRank?: number;
-};
-
-const priorityOrder: Record<PriorityLevel, number> = {
-  ALTA: 1,
-  MEDIA: 2,
-  BAJA: 3,
 };
 
 export default function Page() {
@@ -79,7 +70,6 @@ export default function Page() {
               status: 'RECEIVED' as UnitStatus,
               reportedAt: u.createdAt,
               defects: u.defects || [],
-              priority: u.priority ?? undefined,
               priorityNote: u.priorityNote ?? undefined,
               priorityRank: u.priorityRank ?? undefined,
             });
@@ -95,36 +85,23 @@ export default function Page() {
   const pendingToPrioritize = useMemo(
     () =>
       units.filter(
-        (u) => !u.priority && (u.status === "RECEIVED")
+        (u) => u.priorityRank == null && (u.status === "RECEIVED")
       ),
     [units]
   );
 
   const prioritizedUnits = useMemo(
-    () => units.filter((u) => !!u.priority),
+    () => units.filter((u) => u.priorityRank != null),
     [units]
   );
 
   const bodyViewQueue = useMemo(
     () =>
       [...prioritizedUnits].sort((a, b) => {
-        if (!a.priority || !b.priority) return 0;
-        
-        // Ordenar primero por priorityRank si ambos lo tienen
-        if (a.priorityRank != null && b.priorityRank != null) {
-          return a.priorityRank - b.priorityRank;
-        }
-        // Si solo uno tiene priorityRank, va primero
-        if (a.priorityRank != null) return -1;
-        if (b.priorityRank != null) return 1;
-        
-        // Luego por nivel de prioridad
-        if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-          return priorityOrder[a.priority] - priorityOrder[b.priority];
-        }
-        
-        // Finalmente por fecha
-        return new Date(a.reportedAt).getTime() - new Date(b.reportedAt).getTime();
+        // Ordenar por priorityRank
+        const rankA = a.priorityRank ?? 9999;
+        const rankB = b.priorityRank ?? 9999;
+        return rankA - rankB;
       }),
     [prioritizedUnits]
   );
@@ -142,23 +119,20 @@ export default function Page() {
   const savePriority = () => {
     if (!selectedUnit) return;
 
-    // Usar MEDIA como prioridad base para todos
-    const finalPriority = "MEDIA";
-
-    // Persist to backend
+    // Agregar a la cola asignando nota
     (async () => {
       try {
         const resp = await fetch(`${API_BASE}/units/${selectedUnit.id}/priority`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ priority: finalPriority, note, assignedById: 1 })
+          body: JSON.stringify({ note, assignedById: 1 })
         });
         const json = await resp.json();
         if (json?.ok) {
           // Update the unit with the response data which includes priorityRank
           setUnits(prev => prev.map(u => 
             u.id === selectedUnit.id 
-              ? { ...u, priority: finalPriority, priorityNote: note.trim() || undefined, priorityRank: json.data.priorityRank }
+              ? { ...u, priorityNote: note.trim() || undefined, priorityRank: json.data.priorityRank }
               : u
           ));
         }
@@ -208,18 +182,14 @@ export default function Page() {
   const saveOrder = async () => {
     setSavingOrder(true);
     try {
-      const grouped: Record<PriorityLevel, number[]> = { ALTA: [], MEDIA: [], BAJA: [] };
-      for (const u of bodyViewQueue) {
-        if (u.priority) grouped[u.priority].push(u.id);
-      }
-      for (const p of ['ALTA','MEDIA','BAJA'] as PriorityLevel[]) {
-        if (grouped[p].length) {
-          await fetch(`${API_BASE}/units/priority/order`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ priority: p, unitIds: grouped[p], assignedById: 1 })
-          });
-        }
+      // Enviar el orden completo
+      const unitIds = bodyViewQueue.map(u => u.id);
+      if (unitIds.length > 0) {
+        await fetch(`${API_BASE}/units/priority/order`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ unitIds, assignedById: 1 })
+        });
       }
     } finally {
       setSavingOrder(false);

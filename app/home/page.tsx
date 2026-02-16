@@ -3,6 +3,7 @@
 import { Header } from '@/components/layout/Header';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { DailyTrackingWidget } from '@/components/home/DailyTrackingWidget';
+import { RepairTimelineWidget } from '@/components/home/RepairTimelineWidget';
 
 export default function HomePage() {
   return (
@@ -13,10 +14,13 @@ export default function HomePage() {
         <main className="max-w-7xl mx-auto px-6 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Panel Principal</h1>
-            <p className="text-gray-600">Monitoreo de unidades del día y notificaciones</p>
+            <p className="text-gray-600">Monitoreo de unidades del día y tiempos de reparación</p>
           </div>
 
-          <DailyTrackingWidget />
+          <div className="space-y-8">
+            <RepairTimelineWidget />
+            <DailyTrackingWidget />
+          </div>
         </main>
       </div>
     </ProtectedRoute>

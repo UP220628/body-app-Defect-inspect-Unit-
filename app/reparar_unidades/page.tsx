@@ -15,16 +15,15 @@ import { useUnitEvents } from '@/lib/useUnitEvents';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
-type PriorityLevel = 'ALTA'|'MEDIA'|'BAJA';
 type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; resolved?: boolean };
 type Unit = {
   id: number;
   vin: string;
   statusName: 'RECEIVED'|'IN_REPAIR'|'RELEASED'|'UNAVAILABLE';
-  priority?: PriorityLevel;
   priorityRank?: number;
   priorityNote?: string;
   estimatedRepairHours?: number;
+  estimatedCompletionDate?: string;
   defects?: Defect[];
   isAvailableToday?: boolean;
 };
@@ -40,6 +39,7 @@ export default function Page() {
   const [allUnits, setAllUnits] = useState<Unit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [isRepairModal, setIsRepairModal] = useState(false);
+  const [isEditTimeModal, setIsEditTimeModal] = useState(false);
   const [isUnavailableModal, setIsUnavailableModal] = useState(false);
   const [unavailableReason, setUnavailableReason] = useState<string>('');
   const [estimatedHours, setEstimatedHours] = useState<string>('');
@@ -128,10 +128,10 @@ export default function Page() {
             : u
         ));
         
-        // Si se está iniciando reparación y la unidad tenía prioridad, recalcular orden
-        if (newStatus === 'IN_REPAIR' && selectedUnit.priority) {
+        // Si se está iniciando reparación y la unidad tenía ranking, recalcular orden
+        if (newStatus === 'IN_REPAIR' && selectedUnit.priorityRank != null) {
           const remainingUnits = allUnits
-            .filter(u => u.id !== selectedUnit.id && u.priority === selectedUnit.priority && u.statusName === 'RECEIVED')
+            .filter(u => u.id !== selectedUnit.id && u.priorityRank != null && u.statusName === 'RECEIVED')
             .sort((a, b) => (a.priorityRank || 9999) - (b.priorityRank || 9999));
           
           if (remainingUnits.length > 0) {
@@ -140,7 +140,6 @@ export default function Page() {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
-                priority: selectedUnit.priority, 
                 unitIds, 
                 assignedById: 1 
               })
@@ -200,10 +199,10 @@ export default function Page() {
             : u
         ));
         
-        // Recalcular orden si la unidad tenía prioridad
-        if (selectedUnit.priority) {
+        // Recalcular orden si la unidad tenía ranking
+        if (selectedUnit.priorityRank != null) {
           const remainingUnits = allUnits
-            .filter(u => u.id !== selectedUnit.id && u.priority === selectedUnit.priority && u.statusName === 'RECEIVED')
+            .filter(u => u.id !== selectedUnit.id && u.priorityRank != null && u.statusName === 'RECEIVED')
             .sort((a, b) => (a.priorityRank || 9999) - (b.priorityRank || 9999));
           
           if (remainingUnits.length > 0) {
@@ -212,7 +211,6 @@ export default function Page() {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
-                priority: selectedUnit.priority, 
                 unitIds, 
                 assignedById: 1 
               })
@@ -248,6 +246,41 @@ export default function Page() {
     }, 0);
     setEstimatedHours(suggestedHours.toString());
     setIsRepairModal(true);
+  };
+
+  const handleEditTime = (unit: Unit) => {
+    setSelectedUnit(unit);
+    setEstimatedHours(unit.estimatedRepairHours?.toString() || '');
+    setIsEditTimeModal(true);
+  };
+
+  const handleConfirmEditTime = async () => {
+    if (!selectedUnit || !user || !estimatedHours) return;
+    
+    try {
+      const resp = await fetch(`${API_BASE}/units/${selectedUnit.id}/estimated-time`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          estimatedRepairHours: parseFloat(estimatedHours), 
+          updatedById: user.id 
+        })
+      });
+      const json = await resp.json();
+      if (json?.ok) {
+        const updatedUnit = json.data;
+        setAllUnits(prev => prev.map(u => 
+          u.id === selectedUnit.id 
+            ? { ...u, estimatedRepairHours: updatedUnit.estimatedRepairHours }
+            : u
+        ));
+        setIsEditTimeModal(false);
+        setSelectedUnit(null);
+        setEstimatedHours('');
+      }
+    } catch (err) {
+      // Error actualizando tiempo
+    }
   };
 
   const handleConfirmReactivate = async () => {
@@ -293,10 +326,6 @@ export default function Page() {
     allUnits
       .filter((u) => u.statusName === 'RECEIVED')
       .sort((a, b) => {
-        const order = { ALTA: 1, MEDIA: 2, BAJA: 3 } as const;
-        const ao = a.priority ? order[a.priority] : 99;
-        const bo = b.priority ? order[b.priority] : 99;
-        if (ao !== bo) return ao - bo;
         const ar = a.priorityRank || 9999;
         const br = b.priorityRank || 9999;
         return ar - br;
@@ -308,10 +337,6 @@ export default function Page() {
     allUnits
       .filter((u) => u.statusName === 'IN_REPAIR')
       .sort((a, b) => {
-        const order = { ALTA: 1, MEDIA: 2, BAJA: 3 } as const;
-        const ao = a.priority ? order[a.priority] : 99;
-        const bo = b.priority ? order[b.priority] : 99;
-        if (ao !== bo) return ao - bo;
         const ar = a.priorityRank || 9999;
         const br = b.priorityRank || 9999;
         return ar - br;
@@ -486,13 +511,23 @@ export default function Page() {
                             <span className="sm:hidden">Reactivar</span>
                           </Button>
                         ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => handleStartRepair(unit)}
-                            className="bg-green-600 hover:bg-green-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
-                          >
-                            Liberar
-                          </Button>
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              onClick={() => handleEditTime(unit)}
+                              className="bg-yellow-600 hover:bg-yellow-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                            >
+                              <span className="hidden sm:inline">Editar Tiempo</span>
+                              <span className="sm:hidden">⏱️</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleStartRepair(unit)}
+                              className="bg-green-600 hover:bg-green-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                            >
+                              Liberar
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -682,6 +717,77 @@ export default function Page() {
           <div className="p-3 bg-gray-50 rounded-lg">
             <p className="text-xs text-gray-600">
               Nota: La unidad podrá ser reactivada posteriormente desde el dashboard de administración.
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal - Edit Estimated Time */}
+      <Modal
+        isOpen={isEditTimeModal}
+        onClose={() => setIsEditTimeModal(false)}
+        title={`Editar Tiempo Estimado: ${selectedUnit?.vin}`}
+        size="md"
+        footer={
+          <div className="flex gap-2">
+            <Button onClick={() => setIsEditTimeModal(false)} variant="secondary" className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleConfirmEditTime}
+              className="bg-yellow-600 hover:bg-yellow-700 text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2"
+            >
+              <span className="hidden sm:inline">Actualizar Tiempo</span>
+              <span className="sm:hidden">Actualizar</span>
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Editar Tiempo Estimado:</strong> Modifica el tiempo estimado de reparación de esta unidad. El sistema recalculará las fechas de finalización considerando las demás unidades en reparación.
+            </p>
+          </div>
+
+          {/* Unit Info */}
+          <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
+            <div>
+              <p className="text-sm text-gray-600">VIN</p>
+              <p className="font-mono font-semibold text-sm">{selectedUnit?.vin}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Estado Actual</p>
+              <StatusBadge status={selectedUnit?.statusName || 'IN_REPAIR'} />
+            </div>
+          </div>
+
+          {/* Current Estimated Hours */}
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-xs text-gray-600 mb-1">Tiempo estimado actual:</p>
+            <p className="text-lg font-bold text-gray-900">
+              {selectedUnit?.estimatedRepairHours ? `${Number(selectedUnit.estimatedRepairHours).toFixed(1)} horas` : 'No especificado'}
+            </p>
+          </div>
+
+          {/* New Estimated Hours */}
+          <div>
+            <label className="block text-sm font-semibold mb-2">Nuevo Tiempo Estimado</label>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <Input
+                  type="number"
+                  value={estimatedHours}
+                  onChange={(e) => setEstimatedHours(e.target.value)}
+                  placeholder="Horas estimadas"
+                  step="0.5"
+                  min="0"
+                />
+              </div>
+              <p className="text-sm text-gray-600 mb-2">horas</p>
+            </div>
+            <p className="text-xs text-gray-600 mt-2">
+              Sugerencia: Considera el progreso actual de la reparación
             </p>
           </div>
         </div>
