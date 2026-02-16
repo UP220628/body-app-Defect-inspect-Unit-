@@ -270,27 +270,6 @@ export const DailyTrackingWidget = () => {
             </CardBody>
           </Card>
         )}
-
-        {/* Estado general */}
-        <Card className={unavailableUnits.length > 0 ? '' : 'lg:col-span-3'}>
-          <CardHeader>
-            <h3 className="text-lg font-semibold text-gray-900">Estado de Unidades</h3>
-          </CardHeader>
-          <CardBody>
-            <div className="space-y-2">
-              {['REPORTED', 'SENT', 'DELIVERED', 'RECEIVED', 'IN_REPAIR', 'RELEASED', 'WWS_RELEASED', 'ACCEPTED', 'UNAVAILABLE'].map(status => {
-                const count = units.filter(u => u.statusName === status).length;
-                if (count === 0) return null;
-                return (
-                  <div key={status} className="flex items-center justify-between">
-                    <StatusBadge status={status} />
-                    <span className="text-2xl font-bold text-gray-900">{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardBody>
-        </Card>
       </div>
 
       {/* Tabla de todas las unidades del día */}
