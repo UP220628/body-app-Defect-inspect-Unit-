@@ -18,8 +18,8 @@ export default function HomePage() {
           </div>
 
           <div className="space-y-8">
-            <RepairTimelineWidget />
             <DailyTrackingWidget />
+            <RepairTimelineWidget />
           </div>
         </main>
       </div>
