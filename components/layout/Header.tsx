@@ -44,7 +44,7 @@ export const Header = () => {
   const userRole = user ? ROLE_NAMES[user.roleId] : '';
 
   return (
-    <header className="w-full px-4 md:px-8 py-4 flex items-center bg-red-50 relative">
+    <header className="sticky top-0 z-50 w-full px-4 md:px-8 py-4 flex items-center bg-red-50/95 backdrop-blur-md shadow-sm">
       <Link href="/home" className="flex items-center">
         <Image src="/images/Nissan_logo.png" alt="Nissan" width={60} height={60} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
       </Link>
