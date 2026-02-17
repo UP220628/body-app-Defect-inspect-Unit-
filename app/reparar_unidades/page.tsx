@@ -362,43 +362,43 @@ export default function Page() {
       <div className="min-h-screen bg-red-50">
         <Header />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8">
         {/* Page Header */}
-        <div className="mb-8 flex items-start justify-between">
+        <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Reparar Unidades</h1>
-            <p className="text-gray-600">Gestiona el proceso de reparación</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Reparar Unidades</h1>
+            <p className="text-sm sm:text-base text-gray-600">Gestiona el proceso de reparación</p>
           </div>
           <div className="text-xs text-gray-500 flex items-center gap-2">
             <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            Última actualización: {lastUpdate.toLocaleTimeString('es-MX')}
+            Actualizado: {lastUpdate.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card>
             <CardBody>
-              <p className="text-sm text-gray-600 mb-1">Pendientes</p>
-              <p className="text-3xl font-bold text-yellow-600">{pendingUnits.length}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Pendientes</p>
+              <p className="text-2xl sm:text-3xl font-bold text-yellow-600">{pendingUnits.length}</p>
             </CardBody>
           </Card>
           <Card>
             <CardBody>
-              <p className="text-sm text-gray-600 mb-1">En Reparación</p>
-              <p className="text-3xl font-bold text-blue-600">{inRepairUnits.length}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">En Reparación</p>
+              <p className="text-2xl sm:text-3xl font-bold text-blue-600">{inRepairUnits.length}</p>
             </CardBody>
           </Card>
           <Card>
             <CardBody>
-              <p className="text-sm text-gray-600 mb-1">No Disponibles</p>
-              <p className="text-3xl font-bold text-gray-600">{unavailableUnits.length}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">No Disponibles</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-600">{unavailableUnits.length}</p>
             </CardBody>
           </Card>
           <Card>
             <CardBody>
-              <p className="text-sm text-gray-600 mb-1">Horas Totales Estimadas</p>
-              <p className="text-3xl font-bold text-gray-900">
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Horas Estimadas</p>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                 {allUnits.reduce((acc, u) => {
                   const hours = Number(u.estimatedRepairHours) || 0;
                   return acc + hours;
@@ -408,8 +408,8 @@ export default function Page() {
           </Card>
           <Card>
             <CardBody>
-              <p className="text-sm text-gray-600 mb-1">Defectos Pendientes</p>
-              <p className="text-3xl font-bold text-red-600">
+              <p className="text-xs sm:text-sm text-gray-600 mb-1">Defectos</p>
+              <p className="text-2xl sm:text-3xl font-bold text-red-600">
                 {allUnits.reduce((acc, u) => acc + (u.defects || []).filter((d) => !d.resolved).length, 0)}
               </p>
             </CardBody>
@@ -441,21 +441,22 @@ export default function Page() {
         {/* Table */}
         <Card>
           <CardBody>
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHeadCell>Orden</TableHeadCell>
+                    <TableHeadCell className="hidden sm:table-cell">Orden</TableHeadCell>
                     <TableHeadCell>VIN</TableHeadCell>
-                    <TableHeadCell>Defectos</TableHeadCell>
+                    <TableHeadCell className="hidden md:table-cell">Defectos</TableHeadCell>
                     <TableHeadCell>Estimado</TableHeadCell>
-                    <TableHeadCell>Estado</TableHeadCell>
+                    <TableHeadCell className="hidden sm:table-cell">Estado</TableHeadCell>
                     <TableHeadCell className="text-right">Acciones</TableHeadCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {displayUnits.map((unit) => (
                     <TableRow key={unit.id}>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {unit.priorityRank ? (
                           <span className="inline-flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-800 rounded-full font-bold text-sm">
                             {unit.priorityRank}
@@ -464,9 +465,9 @@ export default function Page() {
                           <span className="text-gray-400 text-sm">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="font-mono font-semibold">{unit.vin}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 flex-wrap">
+                      <TableCell className="font-mono font-semibold text-xs sm:text-sm">{unit.vin}</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="flex gap-1 flex-wrap max-w-xs">
                           {(unit.defects || []).map((defect) => (
                             <GradeBadge
                               key={defect.id}
@@ -478,24 +479,24 @@ export default function Page() {
                           ))}
                         </div>
                       </TableCell>
-                      <TableCell>{unit.estimatedRepairHours ? `${Number(unit.estimatedRepairHours).toFixed(1)}h` : '-'}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs sm:text-sm">{unit.estimatedRepairHours ? `${Number(unit.estimatedRepairHours).toFixed(1)}h` : '-'}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <StatusBadge status={unit.statusName} />
                       </TableCell>
                       <TableCell align="right">
                         {unit.statusName === 'RECEIVED' ? (
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex gap-1 sm:gap-2 justify-end">
                             <Button
                               size="sm"
                               onClick={() => handleStartRepair(unit)}
-                              className="bg-blue-600 hover:bg-blue-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                              className="bg-blue-600 hover:bg-blue-700 text-xs px-2 py-1 sm:px-3 sm:py-2 whitespace-nowrap"
                             >
                               Iniciar
                             </Button>
                             <Button
                               size="sm"
                               onClick={() => handleMarkUnavailable(unit)}
-                              className="bg-gray-600 hover:bg-gray-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                              className="bg-gray-600 hover:bg-gray-700 text-xs px-2 py-1 sm:px-3 sm:py-2 whitespace-nowrap"
                             >
                               <span className="hidden sm:inline">No Disponible</span>
                               <span className="sm:hidden">N/D</span>
@@ -505,25 +506,25 @@ export default function Page() {
                           <Button
                             size="sm"
                             onClick={() => handleReactivateUnit(unit)}
-                            className="bg-green-600 hover:bg-green-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                            className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 sm:px-3 sm:py-2 whitespace-nowrap"
                           >
-                            <span className="hidden sm:inline">Reactivar para Reparar</span>
-                            <span className="sm:hidden">Reactivar</span>
+                            <span className="hidden md:inline">Reactivar para Reparar</span>
+                            <span className="md:hidden">Reactivar</span>
                           </Button>
                         ) : (
-                          <div className="flex gap-2 justify-end">
+                          <div className="flex gap-1 sm:gap-2 justify-end">
                             <Button
                               size="sm"
                               onClick={() => handleEditTime(unit)}
-                              className="bg-yellow-600 hover:bg-yellow-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                              className="bg-yellow-600 hover:bg-yellow-700 text-xs px-2 py-1 sm:px-3 sm:py-2 whitespace-nowrap"
                             >
-                              <span className="hidden sm:inline">Editar Tiempo</span>
-                              <span className="sm:hidden">⏱️</span>
+                              <span className="hidden md:inline">Editar Tiempo</span>
+                              <span className="md:hidden">⏱️</span>
                             </Button>
                             <Button
                               size="sm"
                               onClick={() => handleStartRepair(unit)}
-                              className="bg-green-600 hover:bg-green-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                              className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1 sm:px-3 sm:py-2 whitespace-nowrap"
                             >
                               Liberar
                             </Button>
@@ -534,6 +535,7 @@ export default function Page() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
             </CardBody>
           </Card>
       </main>

@@ -483,8 +483,9 @@ export default function Page() {
                   <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2=Moderado (Body o Liberar) | V3=Leve (Liberable)</p>
                 </div>
                 <Button onClick={handleAddDefect} className="w-full px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md transition-all rounded-lg">
-                  <span className="hidden sm:inline">+ Agregar Defecto</span>
-                  <span className="sm:hidden">+ Agregar</span>
+                  +{' '}
+                  <span className="hidden sm:inline">Agregar Defecto</span>
+                  <span className="sm:hidden">Agregar</span>
                 </Button>
               </div>
             </div>
