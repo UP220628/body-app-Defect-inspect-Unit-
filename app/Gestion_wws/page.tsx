@@ -200,20 +200,20 @@ export default function Page() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-gray-100 rounded-lg p-1 overflow-x-auto">
+        <div className="flex gap-1 mb-6 bg-gray-100 rounded-lg p-1">
           {tabs.map(tab => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 min-w-[140px] py-2.5 px-3 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
                 activeTab === tab.key
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <span className="block sm:inline">{tab.label}</span>
+              {tab.label}
               {tab.count !== undefined && (
-                <span className={`ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs ${
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
                   activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
                 }`}>
                   {tab.count}

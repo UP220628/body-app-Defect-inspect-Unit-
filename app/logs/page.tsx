@@ -263,7 +263,6 @@ export default function Page (){
                 <TableHeader>
                   <TableRow>
                     <TableHeadCell className="px-3 py-2 text-[11px]">VIN</TableHeadCell>
-                    {/* Modelo column removed */}
                     <TableHeadCell className="px-3 py-2 text-[11px]">Mercado</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Carril</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Reportada</TableHeadCell>
@@ -282,7 +281,6 @@ export default function Page (){
                   {paginatedUnits.map((unit: any) => (
                     <TableRow key={unit.unitId}>
                       <TableCell className="font-mono font-semibold px-3 py-2 text-xs">{unit.vin}</TableCell>
-                      {/* Modelo removed */}
                       <TableCell className="px-3 py-2 text-xs">{unit.market}</TableCell>
                       <TableCell className="px-3 py-2 text-xs">{unit.lane}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.REPORTED)}</TableCell>
