@@ -422,14 +422,14 @@ export default function Page() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 py-2.5 px-4 rounded-md text-sm font-medium transition-all ${
+              className={`flex-1 py-2 px-2 md:py-2.5 md:px-4 rounded-md text-xs md:text-sm font-medium transition-all ${
                 activeTab === tab.key
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               {tab.label}
-              <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
+              <span className={`ml-1 md:ml-2 px-1.5 md:px-2 py-0.5 rounded-full text-[10px] md:text-xs ${
                 activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'
               }`}>
                 {tab.count}
