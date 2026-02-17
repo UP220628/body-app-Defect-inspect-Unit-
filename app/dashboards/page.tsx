@@ -355,8 +355,8 @@ export default function Page (){
             <CardBody>
               <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                 {providerStats.map((provider, idx) => {
-                  const maxCount = providerStats[0]?.count || 1;
-                  const percentage = (provider.count / maxCount) * 100;
+                  const totalCount = providerStats.reduce((sum, p) => sum + p.count, 0) || 1;
+                  const percentage = (provider.count / totalCount) * 100;
                   return (
                     <div key={provider.provider} className="relative">
                       <div className="flex items-center justify-between mb-2">
