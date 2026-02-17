@@ -13,7 +13,7 @@ export type RoleId = typeof ROLES[keyof typeof ROLES];
 export const ROUTE_PERMISSIONS: Record<string, number[]> = {
   '/home': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER], // Todos
   '/dashboards': [ROLES.ADMIN, ROLES.SCM], // ADMIN y SCM
-  '/inspeccionar_unidades': [ROLES.ADMIN, ROLES.WWS], // ADMIN y WWS
+  '/gestion_wws': [ROLES.ADMIN, ROLES.WWS], // ADMIN y WWS
   '/logs': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER], // Todos
   '/recibir_unidades': [ROLES.ADMIN, ROLES.BODY], // ADMIN y BODY
   '/reparar_unidades': [ROLES.ADMIN, ROLES.BODY], // ADMIN y BODY
