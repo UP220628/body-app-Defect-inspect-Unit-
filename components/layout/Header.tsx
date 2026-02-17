@@ -12,7 +12,7 @@ import { NotificationBell } from './NotificationBell';
 const ALL_ROUTES = [
   { href: '/home', label: 'Home' },
   { href: '/reportar_unidad', label: 'Reportar Unidad' },
-  { href: '/inspeccionar_unidades', label: 'Gestión WWS' },
+  { href: '/gestion_wws', label: 'Gestión WWS' },
   { href: '/recibir_unidades', label: 'Recibir Unidades' },
   { href: '/reparar_unidades', label: 'Unidades a Reparar' },
   { href: '/prioridad_reparaciones', label: 'Prioridad Reparaciones' },
