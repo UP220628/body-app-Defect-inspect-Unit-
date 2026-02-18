@@ -20,6 +20,7 @@ export const ROUTE_PERMISSIONS: Record<string, number[]> = {
   '/prioridad_reparaciones': [ROLES.ADMIN, ROLES.SCM], // ADMIN y SCM
   '/reportar_unidad': [ROLES.ADMIN, ROLES.CARRIER], // ADMIN y CARRIER
   '/aceptar_unidades': [ROLES.ADMIN, ROLES.CARRIER], // ADMIN y CARRIER
+  '/validar_unidad': [ROLES.ADMIN, ROLES.VQA], // ADMIN y VQA
   '/profile': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.VQA], // Todos pueden ver perfil
 };
 

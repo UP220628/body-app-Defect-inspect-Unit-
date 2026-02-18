@@ -16,7 +16,7 @@ type NotificationItem = {
   id: number;
   userId: number;
   unitId: number;
-  type: 'UNIT_REPORTED' | 'UNIT_RELEASED' | 'STATUS_CHANGED' | 'DEFECT_ADDED' | 'REPAIR_ESTIMATED';
+  type: 'UNIT_REPORTED' | 'UNIT_RELEASED' | 'STATUS_CHANGED' | 'DEFECT_ADDED' | 'REPAIR_ESTIMATED' | 'VQA_PENDING';
   message: string | null;
   isRead: boolean;
   createdAt: Date;
@@ -28,6 +28,7 @@ const notificationMeta: Record<NotificationItem['type'], { title: string; tone: 
   STATUS_CHANGED: { title: 'Cambio de estado', tone: 'low' },
   DEFECT_ADDED: { title: 'Defecto agregado', tone: 'low' },
   REPAIR_ESTIMATED: { title: 'Reparacion estimada', tone: 'low' },
+  VQA_PENDING: { title: 'Validación VQA requerida', tone: 'high' },
 };
 
 const toneColor = (tone: 'high' | 'medium' | 'low') => {

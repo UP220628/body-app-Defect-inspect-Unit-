@@ -47,6 +47,8 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('nivelacion');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [vqaUnit, setVqaUnit] = useState<Unit | null>(null);
+  const [vqaComment, setVqaComment] = useState('');
 
   // Unidades por pestaña
   const reportedUnits = useMemo(() => allUnits.filter(u => u.statusName === 'REPORTED'), [allUnits]);
@@ -125,14 +127,14 @@ export default function Page() {
 
   const hasV1V2 = (unit: Unit) => (unit.defects||[]).some(d => d.grade === 'V1' || d.grade === 'V2');
 
-  const updateStatus = async (unitId: number, newStatus: string) => {
+  const updateStatus = async (unitId: number, newStatus: string, extraBody?: Record<string, any>) => {
     if (!user) return;
     setLoading(true);
     try {
       const resp = await fetch(`${API_BASE}/units/${unitId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ newStatus, changedById: user.id })
+        body: JSON.stringify({ newStatus, changedById: user.id, ...extraBody })
       });
       const json = await resp.json();
       if (json?.ok) {
@@ -300,12 +302,12 @@ export default function Page() {
                         {activeTab === 'liberar' && (
                           <Button
                             size="sm"
-                            onClick={() => updateStatus(u.id, 'WWS_RELEASED')}
-                            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                            onClick={() => { setVqaUnit(u); setVqaComment(''); }}
+                            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
                             disabled={loading}
                           >
-                            <span className="hidden sm:inline">Liberar WWS</span>
-                            <span className="sm:hidden">Liberar</span>
+                            <span className="hidden sm:inline">Solicitar VQA</span>
+                            <span className="sm:hidden">VQA</span>
                           </Button>
                         )}
                       </TableCell>
@@ -356,12 +358,12 @@ export default function Page() {
                         <span className="sm:hidden">Body</span>
                       </Button>
                       <Button
-                        onClick={() => updateStatus(selected!.id, 'WWS_RELEASED')}
+                        onClick={() => { setSelected(null); setVqaUnit(selected!); setVqaComment(''); }}
                         size="sm"
-                        className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
+                        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
                         disabled={loading}
                       >
-                        Liberar
+                        Solicitar VQA
                       </Button>
                     </>
                   )}
@@ -378,12 +380,12 @@ export default function Page() {
                   )}
                   {(selected!.defects||[]).some(d => d.grade === 'V3') && !((selected!.defects||[]).some(d => d.grade === 'V1' || d.grade === 'V2')) && (
                     <Button
-                      onClick={() => updateStatus(selected!.id, 'WWS_RELEASED')}
+                      onClick={() => { setSelected(null); setVqaUnit(selected!); setVqaComment(''); }}
                       size="sm"
-                      className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
+                      className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
                       disabled={loading}
                     >
-                      Liberar
+                      Solicitar VQA
                     </Button>
                   )}
                 </>
@@ -539,6 +541,86 @@ export default function Page() {
           </div>
         )}
       </Modal>
+      {/* Modal - VQA: comentario y confirmación de solicitud */}
+      <Modal
+        isOpen={!!vqaUnit}
+        onClose={() => { setVqaUnit(null); setVqaComment(''); }}
+        title={`Solicitar validación VQA: ${vqaUnit?.vin ?? ''}`}
+        size="md"
+        footer={
+          <div className="flex gap-3 justify-between items-center">
+            <Button
+              onClick={() => { setVqaUnit(null); setVqaComment(''); }}
+              variant="secondary"
+              size="sm"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!vqaUnit) return;
+                await updateStatus(vqaUnit.id, 'VQA_PENDING', { vqaComment: vqaComment.trim() || null });
+                setVqaUnit(null);
+                setVqaComment('');
+              }}
+              size="sm"
+              className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold text-xs px-4 py-2"
+              disabled={loading}
+            >
+              Enviar a VQA
+            </Button>
+          </div>
+        }
+      >
+        {vqaUnit && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg text-sm">
+              <div>
+                <p className="text-xs text-gray-500">VIN</p>
+                <p className="font-mono font-semibold text-xs break-all">{vqaUnit.vin}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Mercado</p>
+                <p className="font-semibold">{vqaUnit.market}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Carril</p>
+                <p className="font-semibold">{vqaUnit.lane}</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Defectos</p>
+              <div className="flex gap-1 flex-wrap">
+                {(vqaUnit.defects || []).map(d => (
+                  <GradeBadge key={d.id} grade={d.grade}>{d.grade} — {d.type}</GradeBadge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1">
+                Comentario para VQA <span className="font-normal text-gray-500">(opcional)</span>
+              </label>
+              <textarea
+                value={vqaComment}
+                onChange={e => setVqaComment(e.target.value)}
+                placeholder="Ej: VQA ya realizó revisión presencial, defecto V3 aceptado..."
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+              />
+            </div>
+
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <p className="text-xs text-purple-700">
+                Al confirmar, la unidad pasará a <strong>Pendiente VQA</strong> y se notificará al
+                área de VQA para que revise los defectos y confirme o rechace la liberación.
+              </p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
     </div>
     </ProtectedRoute>
   );
