@@ -41,16 +41,23 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
   return (
     <>
-      {/* Overlay móvil */}
+      {/* Overlay (visible en móvil y desktop para cerrar) */}
       <div
-        className="fixed inset-0 bg-black/50 md:hidden z-[9998]"
+        className="fixed inset-0 z-[9998]"
         onClick={onClose}
       />
-      
-      {/* Dropdown */}
+
+      {/* Dropdown — móvil: bottom sheet, desktop: fixed debajo del header a la derecha */}
       <div
         ref={dropdownRef}
-        className="fixed md:absolute md:right-0 md:top-full md:mt-2 left-0 right-0 bottom-0 md:bottom-auto w-full md:w-96 md:rounded-lg rounded-t-2xl bg-white shadow-2xl md:shadow-xl z-[9999] border-t md:border border-gray-200 max-h-[85vh] md:max-h-[80vh] flex flex-col"
+        className={[
+          // Base
+          'fixed z-[9999] bg-white shadow-2xl border border-gray-200 flex flex-col',
+          // Móvil: full width, aparece desde abajo, esquinas superiores redondeadas
+          'inset-x-0 bottom-0 rounded-t-2xl max-h-[85vh]',
+          // Desktop: ancho fijo, posicionado en la esquina superior derecha, debajo del header
+          'md:inset-x-auto md:bottom-auto md:right-4 md:top-[88px] md:w-96 md:rounded-lg md:max-h-[80vh]',
+        ].join(' ')}
       >
       {/* Header */}
       {title && (
