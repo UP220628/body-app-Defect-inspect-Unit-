@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { canAccessRoute, ROLE_NAMES } from '@/lib/permissions';
@@ -24,8 +24,27 @@ const ALL_ROUTES = [
 export const Header = () => {
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { logout, user } = useAuth();
+
+  // Detectar clicks fuera de los dropdowns para cerrarlos
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setMobileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const isActive = (href: string) => pathname === href;
 
@@ -73,7 +92,7 @@ export const Header = () => {
         aria-expanded={mobileOpen}
         onClick={() => {
           setMobileOpen(!mobileOpen);
-          if (open) setOpen(false);
+          setOpen(false);
         }}
       >
         {mobileOpen ? (
@@ -91,7 +110,7 @@ export const Header = () => {
       </button>
 
       {/* Desktop profile button */}
-      <div className="relative hidden md:block">
+      <div className="relative hidden md:block" ref={profileRef}>
         <button onClick={() => setOpen(!open)} className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
           <span className="text-gray-600">👤</span>
         </button>
@@ -115,7 +134,7 @@ export const Header = () => {
 
       {/* Mobile dropdown menu */}
       {mobileOpen && (
-        <div className="absolute right-4 top-full mt-2 w-64 bg-white rounded-md shadow-lg py-2 md:hidden z-10">
+        <div className="absolute right-4 top-full mt-2 w-64 bg-white rounded-md shadow-lg py-2 md:hidden z-10" ref={mobileMenuRef}>
           {availableRoutes.map(route => (
             <Link 
               key={route.href}
