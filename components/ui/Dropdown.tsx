@@ -50,7 +50,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       {/* Dropdown */}
       <div
         ref={dropdownRef}
-        className="fixed md:absolute md:right-0 md:top-full md:mt-2 left-0 right-0 bottom-0 md:bottom-auto w-full md:w-96 md:rounded-lg rounded-t-2xl bg-white shadow-2xl md:shadow-xl z-[9999] border-t md:border border-gray-200 max-h-[85vh] md:max-h-[80vh] flex flex-col"
+        className="fixed md:absolute md:left-0 md:top-full md:mt-2 left-0 right-0 bottom-0 md:bottom-auto w-full md:w-96 md:rounded-lg rounded-t-2xl bg-white shadow-2xl md:shadow-xl z-[9999] border-t md:border border-gray-200 max-h-[85vh] md:max-h-[80vh] flex flex-col"
       >
       {/* Header */}
       {title && (
