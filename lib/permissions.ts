@@ -9,7 +9,6 @@ export const ROLES = {
 
 export type RoleId = typeof ROLES[keyof typeof ROLES];
 
-// Definición de permisos por ruta
 export const ROUTE_PERMISSIONS: Record<string, number[]> = {
   '/home': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER], // Todos
   '/dashboards': [ROLES.ADMIN, ROLES.SCM], // ADMIN y SCM
@@ -23,21 +22,18 @@ export const ROUTE_PERMISSIONS: Record<string, number[]> = {
   '/profile': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER], // Todos pueden ver perfil
 };
 
-// Función para verificar si un rol tiene acceso a una ruta
 export function canAccessRoute(roleId: number, path: string): boolean {
   const allowedRoles = ROUTE_PERMISSIONS[path];
   if (!allowedRoles) return false;
   return allowedRoles.includes(roleId);
 }
 
-// Función para obtener rutas disponibles por rol
 export function getAvailableRoutes(roleId: number): string[] {
   return Object.keys(ROUTE_PERMISSIONS).filter(path => 
     ROUTE_PERMISSIONS[path].includes(roleId)
   );
 }
 
-// Nombres amigables de roles
 export const ROLE_NAMES: Record<number, string> = {
   [ROLES.WWS]: 'WWS',
   [ROLES.SCM]: 'SCM',

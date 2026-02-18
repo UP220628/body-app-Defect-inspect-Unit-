@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface User {
@@ -23,24 +23,88 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const TOKEN_REFRESH_INTERVAL = 14 * 60 * 1000; // 14 minutos (antes de que expire el token de 15 min)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Limpiar intervalo de refresh
+  const clearRefreshInterval = () => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+  };
+
+  // Auto-refresh del token
+  const setupAutoRefresh = (refreshToken: string) => {
+    clearRefreshInterval();
+    
+    refreshIntervalRef.current = setInterval(() => {
+      refreshAccessToken(refreshToken);
+    }, TOKEN_REFRESH_INTERVAL);
+  };
+
+  const refreshAccessToken = async (refreshToken: string) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        // Si falla el refresh, logout del usuario
+        logout();
+        return;
+      }
+
+      const data = await response.json();
+      
+      if (data.ok && data.data) {
+        const newAccessToken = data.data.token;
+        const newRefreshToken = data.data.refreshToken;
+        
+        setToken(newAccessToken);
+        localStorage.setItem('authToken', newAccessToken);
+        localStorage.setItem('refreshToken', newRefreshToken);
+        document.cookie = `authToken=${newAccessToken}; path=/; max-age=${15 * 60}; SameSite=Strict`;
+        
+        // Configurar siguiente refresh con el nuevo refresh token
+        setupAutoRefresh(newRefreshToken);
+      }
+    } catch (error) {
+      console.error('Error refrescando token:', error);
+      logout();
+    }
+  };
 
   // Verificar si hay un token guardado al cargar la aplicación
   useEffect(() => {
     const storedToken = localStorage.getItem('authToken');
-    if (storedToken) {
-      verifyToken(storedToken);
+    const storedRefreshToken = localStorage.getItem('refreshToken');
+    
+    if (storedToken && storedRefreshToken) {
+      verifyToken(storedToken, storedRefreshToken);
     } else {
       setIsLoading(false);
     }
   }, []);
 
-  const verifyToken = async (token: string) => {
+  // Cleanup al desmontar
+  useEffect(() => {
+    return () => {
+      clearRefreshInterval();
+    };
+  }, []);
+
+  const verifyToken = async (token: string, refreshToken: string) => {
     try {
       const response = await fetch(`${API_URL}/auth/verify`, {
         method: 'POST',
@@ -52,18 +116,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.valid) {
+        if (data.ok && data.valid) {
           setToken(token);
           // Obtener información completa del usuario
           await fetchUserData(token);
+          // Configurar auto-refresh
+          setupAutoRefresh(refreshToken);
         } else {
           localStorage.removeItem('authToken');
+          localStorage.removeItem('refreshToken');
         }
       } else {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
       }
     } catch (error) {
       localStorage.removeItem('authToken');
+      localStorage.removeItem('refreshToken');
     } finally {
       setIsLoading(false);
     }
@@ -78,8 +147,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
+        const data = await response.json();
+        if (data.ok) {
+          setUser(data.data);
+        }
       }
     } catch (error) {
       // Error al obtener datos del usuario
@@ -101,13 +172,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(error.error || 'Error al iniciar sesión');
       }
 
-      const data = await response.json();
-      setUser(data.user);
-      setToken(data.token);
-      localStorage.setItem('authToken', data.token);
+      const result = await response.json();
       
-      // Guardar token en cookies para el middleware
-      document.cookie = `authToken=${data.token}; path=/; max-age=${24 * 60 * 60}; SameSite=Strict`;
+      if (!result.ok || !result.data) {
+        throw new Error('Respuesta inválida del servidor');
+      }
+
+      const { user: userData, token: accessToken, refreshToken } = result.data;
+      
+      setUser(userData);
+      setToken(accessToken);
+      
+      // Guardar tokens en localStorage
+      localStorage.setItem('authToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      
+      // Guardar token en cookies para el middleware (solo access token, короткий)
+      document.cookie = `authToken=${accessToken}; path=/; max-age=${15 * 60}; SameSite=Strict`;
+      
+      // Configurar auto-refresh
+      setupAutoRefresh(refreshToken);
       
       router.push('/home');
     } catch (error) {
@@ -115,12 +199,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    clearRefreshInterval();
+    
+    // Notificar al servidor para revocar tokens
+    if (token) {
+      try {
+        await fetch(`${API_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      } catch (error) {
+        // Aunque falle, continuamos con el logout local
+      }
+    }
+    
     setUser(null);
     setToken(null);
     localStorage.removeItem('authToken');
-    
-    // Eliminar cookie
+    localStorage.removeItem('refreshToken');
     document.cookie = 'authToken=; path=/; max-age=0; SameSite=Strict';
     
     router.push('/');
