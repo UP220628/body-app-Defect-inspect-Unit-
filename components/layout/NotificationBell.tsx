@@ -60,6 +60,7 @@ export const NotificationBell = () => {
   const seenIdsRef = useRef<Set<number>>(new Set());
   const hasHydratedRef = useRef(false);
   const pendingSoundRef = useRef(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const unreadCount = useMemo(
     () => notifications.filter(n => !n.isRead).length,
@@ -281,6 +282,7 @@ export const NotificationBell = () => {
     <>
       <div className="relative">
         <button
+          ref={buttonRef}
           onClick={handleOpen}
           className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
@@ -309,6 +311,7 @@ export const NotificationBell = () => {
           isOpen={isOpen}
           onClose={() => setIsOpen(false)}
           title="Notificaciones del Sistema"
+          anchorRef={buttonRef}
         >
           <div className="space-y-3 p-4">
             {notifications.length === 0 ? (
