@@ -48,18 +48,23 @@ export const Dropdown: React.FC<DropdownProps> = ({
   return createPortal(
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
+      <div
+        className={`fixed inset-0 z-[9998] ${isMobile ? 'bg-black/50' : ''}`}
+        onClick={onClose}
+      />
 
-      {/* Móvil: bottom sheet */}
+      {/* Móvil: modal centrado con overlay */}
       {isMobile && (
-        <div className="fixed inset-x-0 bottom-0 z-[9999] bg-white shadow-2xl border-t border-gray-200 rounded-t-2xl max-h-[85vh] flex flex-col">
-          {title && (
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
-              <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
-            </div>
-          )}
-          <div className="overflow-y-auto flex-1">{children}</div>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-white shadow-2xl border border-gray-200 rounded-xl max-h-[80vh] flex flex-col">
+            {title && (
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
+                <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+                <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+              </div>
+            )}
+            <div className="overflow-y-auto flex-1">{children}</div>
+          </div>
         </div>
       )}
 
