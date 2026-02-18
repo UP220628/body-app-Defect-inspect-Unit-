@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal } from '@/components/ui/Modal';
+import { Dropdown } from '@/components/ui/Dropdown';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth';
 
@@ -304,63 +304,62 @@ export const NotificationBell = () => {
             </span>
           )}
         </button>
-      </div>
 
-      <Modal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Notificaciones del Sistema"
-        size="md"
-      >
-        <div className="space-y-3 max-h-[60vh] sm:max-h-96 overflow-y-auto">
-          {notifications.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No hay notificaciones nuevas</p>
-            </div>
-          ) : (
-            notifications.map(notification => {
-              const meta =
-                notificationMeta[notification.type] ||
-                { title: 'Notificacion', tone: 'low' };
-              return (
-                <div
-                  key={notification.id}
-                  className={`border-l-4 ${toneColor(meta.tone)} p-3 sm:p-4 rounded-r-lg relative`}
-                >
-                  <button
-                    type="button"
-                    aria-label="Eliminar notificacion"
-                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-700 w-6 h-6 flex items-center justify-center text-lg"
-                    onClick={() => handleDeleteNotification(notification.id)}
+        <Dropdown
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          title="Notificaciones del Sistema"
+        >
+          <div className="space-y-3 p-4">
+            {notifications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No hay notificaciones nuevas</p>
+              </div>
+            ) : (
+              notifications.map(notification => {
+                const meta =
+                  notificationMeta[notification.type] ||
+                  { title: 'Notificacion', tone: 'low' };
+                return (
+                  <div
+                    key={notification.id}
+                    className={`border-l-4 ${toneColor(meta.tone)} p-3 sm:p-4 rounded-r-lg relative`}
                   >
-                    ✕
-                  </button>
-                  <div className="flex items-start justify-between pr-8">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
-                        {meta.title}
-                      </p>
-                      <p className="text-xs sm:text-sm text-gray-700">
-                        {notification.message || 'Sin detalle'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-2">
-                        {notification.createdAt.toLocaleTimeString('es-MX')}
-                      </p>
+                    <button
+                      type="button"
+                      aria-label="Eliminar notificacion"
+                      className="absolute right-2 top-2 text-gray-400 hover:text-gray-700 w-6 h-6 flex items-center justify-center text-lg"
+                      onClick={() => handleDeleteNotification(notification.id)}
+                    >
+                      ✕
+                    </button>
+                    <div className="flex items-start justify-between pr-8">
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900 mb-1 text-sm sm:text-base">
+                          {meta.title}
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-700">
+                          {notification.message || 'Sin detalle'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-2">
+                          {notification.createdAt.toLocaleTimeString('es-MX')}
+                        </p>
+                      </div>
+                      <span
+                        className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${toneDot(meta.tone)}`}
+                      ></span>
                     </div>
-                    <span
-                      className={`inline-block w-3 h-3 rounded-full flex-shrink-0 ${toneDot(meta.tone)}`}
-                    ></span>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                );
+              })
+            )}
+          </div>
 
-        <div className="mt-4 flex justify-end">
-          <Button onClick={() => setIsOpen(false)}>Cerrar</Button>
-        </div>
-      </Modal>
+          <div className="mt-4 flex justify-end px-4 pb-4 border-t border-gray-100">
+            <Button onClick={() => setIsOpen(false)} className="mt-3">Cerrar</Button>
+          </div>
+        </Dropdown>
+      </div>
     </>
   );
 };
