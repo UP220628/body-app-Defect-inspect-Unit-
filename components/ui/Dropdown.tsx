@@ -40,7 +40,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
   if (!isOpen) return null;
 
   return (
-    {/* Dropdown */}
     <div
       ref={dropdownRef}
       className="absolute right-0 top-full mt-2 w-96 bg-white rounded-lg shadow-xl z-[9999] border border-gray-200 max-h-[80vh] flex flex-col"
