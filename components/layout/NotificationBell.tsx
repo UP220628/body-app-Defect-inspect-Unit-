@@ -354,10 +354,6 @@ export const NotificationBell = () => {
               })
             )}
           </div>
-
-          <div className="mt-4 flex justify-end px-4 pb-4 border-t border-gray-100">
-            <Button onClick={() => setIsOpen(false)} className="mt-3">Cerrar</Button>
-          </div>
         </Dropdown>
       </div>
     </>
