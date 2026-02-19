@@ -364,13 +364,20 @@ export default function Page (){
                     <TableHeadCell className="px-3 py-2 text-[11px]">Aceptada</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Registrado por</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Notas</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Defectos</TableHeadCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedUnits.map((unit: any) => (
                     <TableRow key={unit.unitId}>
-                      <TableCell className="font-mono font-semibold px-3 py-2 text-xs">{unit.vin}</TableCell>
+                      <TableCell className="px-3 py-2 text-xs max-w-[140px]">
+                        <button
+                          onClick={() => handleViewDefects(unit)}
+                          className="font-mono font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer truncate block max-w-full"
+                          title={unit.vin}
+                        >
+                          {unit.vin}
+                        </button>
+                      </TableCell>
                       <TableCell className="px-3 py-2 text-xs">{unit.market}</TableCell>
                       <TableCell className="px-3 py-2 text-xs">{unit.lane}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.REPORTED)}</TableCell>
@@ -397,14 +404,7 @@ export default function Page (){
                           );
                         })()}
                       </TableCell>
-                      <TableCell className="px-3 py-2 text-xs">
-                        <button
-                          onClick={() => handleViewDefects(unit)}
-                          className="text-purple-600 hover:text-purple-800 font-semibold text-xs underline"
-                        >
-                          Ver
-                        </button>
-                      </TableCell>
+
                     </TableRow>
                   ))}
                 </TableBody>
@@ -521,15 +521,15 @@ export default function Page (){
         <Modal
           isOpen={isDefectsModalOpen}
           onClose={() => setIsDefectsModalOpen(false)}
-          title={`Defectos de Unidad: ${selectedUnitDefects?.vin || ''}`}
+          title="Defectos de Unidad"
           size="lg"
         >
           {selectedUnitDefects && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                <div className="col-span-2 sm:col-span-1 min-w-0">
                   <p className="text-xs text-gray-500">VIN</p>
-                  <p className="font-mono font-semibold text-sm">{selectedUnitDefects.vin}</p>
+                  <p className="font-mono font-semibold text-sm break-all">{selectedUnitDefects.vin}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500">Mercado</p>
