@@ -14,7 +14,6 @@ export const ROUTE_PERMISSIONS: Record<string, number[]> = {
   '/home': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.VQA], // Todos
   '/dashboards': [ROLES.ADMIN, ROLES.SCM], // ADMIN y SCM
   '/gestion_wws': [ROLES.ADMIN, ROLES.WWS], // ADMIN y WWS
-  '/catalogo_nissan': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.VQA], // Todos pueden consultar
   '/logs': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.VQA], // Todos
   '/recibir_unidades': [ROLES.ADMIN, ROLES.BODY], // ADMIN y BODY
   '/reparar_unidades': [ROLES.ADMIN, ROLES.BODY], // ADMIN y BODY

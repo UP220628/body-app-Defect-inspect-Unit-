@@ -369,11 +369,10 @@ export default function Page (){
                 <TableBody>
                   {paginatedUnits.map((unit: any) => (
                     <TableRow key={unit.unitId}>
-                      <TableCell className="px-3 py-2 text-xs max-w-[140px]">
+                      <TableCell className="px-3 py-2 text-xs whitespace-nowrap">
                         <button
                           onClick={() => handleViewDefects(unit)}
-                          className="font-mono font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer truncate block max-w-full"
-                          title={unit.vin}
+                          className="font-mono font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer"
                         >
                           {unit.vin}
                         </button>

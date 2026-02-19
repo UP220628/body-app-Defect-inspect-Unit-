@@ -11,7 +11,6 @@ import { NotificationBell } from './NotificationBell';
 // Definición de todas las rutas disponibles
 const ALL_ROUTES = [
   { href: '/home', label: 'Home' },
-  { href: '/catalogo_nissan', label: 'Catálogo Nissan' },
   { href: '/reportar_unidad', label: 'Reportar Unidad' },
   { href: '/gestion_wws', label: 'Gestión WWS' },
   { href: '/recibir_unidades', label: 'Recibir Unidades' },
