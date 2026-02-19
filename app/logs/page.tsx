@@ -14,7 +14,7 @@ import { useUnitEvents } from '@/lib/useUnitEvents';
 
 export default function Page (){
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [vin, setVin] = useState('');
   const [market, setMarket] = useState('');
@@ -28,6 +28,17 @@ export default function Page (){
   const [pageSize, setPageSize] = useState(20);
   const [selectedUnitNotes, setSelectedUnitNotes] = useState<any>(null);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+
+  // Plant tabs
+  const userPlant = user?.plant || 'A1';
+  const otherPlant = userPlant === 'A1' ? 'A2' : 'A1';
+  const isAdmin = user?.roleId === 5;
+  const [plantTab, setPlantTab] = useState<string>(userPlant);
+
+  // Defects modal
+  const [selectedUnitDefects, setSelectedUnitDefects] = useState<any>(null);
+  const [isDefectsModalOpen, setIsDefectsModalOpen] = useState(false);
+  const [loadingDefects, setLoadingDefects] = useState(false);
 
   const todayStr = () => {
     const d = new Date();
@@ -53,8 +64,9 @@ export default function Page (){
     if (endDate) params.set('endDate', endDate);
     params.set('sort', sort);
     params.set('order', order);
+    if (plantTab) params.set('plant', plantTab);
     return params.toString();
-  }, [vin, market, sort, order, startDate, endDate]);
+  }, [vin, market, sort, order, startDate, endDate, plantTab]);
 
   const fetchLogs = useCallback(() => {
     if (!token) return;
@@ -88,7 +100,7 @@ export default function Page (){
 
   useEffect(() => {
     setPage(1);
-  }, [query, pageSize]);
+  }, [query, pageSize, plantTab]);
 
   const groupedUnits = useMemo(() => {
     const grouped = items.reduce((acc: any, row: any) => {
@@ -141,6 +153,32 @@ export default function Page (){
   const handleViewNotes = (unit: any) => {
     setSelectedUnitNotes(unit);
     setIsNotesModalOpen(true);
+  };
+
+  const handleViewDefects = async (unit: any) => {
+    if (!token) return;
+    setLoadingDefects(true);
+    setSelectedUnitDefects({ vin: unit.vin, market: unit.market, lane: unit.lane, defects: [] });
+    setIsDefectsModalOpen(true);
+    try {
+      const res = await fetch(`${API_BASE}/units/${unit.unitId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data?.ok) {
+        setSelectedUnitDefects({
+          vin: data.data.vin,
+          market: data.data.market,
+          lane: data.data.lane,
+          statusName: data.data.statusName,
+          defects: data.data.defects || [],
+        });
+      }
+    } catch {
+      // mantener modal abierto con datos vacíos
+    } finally {
+      setLoadingDefects(false);
+    }
   };
 
   const handleExportToExcel = () => {
@@ -203,6 +241,57 @@ export default function Page (){
             <span className="inline-block w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
             Última actualización: {lastUpdate.toLocaleTimeString('es-MX')}
           </div>
+        </div>
+
+        {/* Pestañas de Planta */}
+        <div className="mb-4 flex gap-1 bg-gray-100 rounded-lg p-1 w-fit">
+          {isAdmin ? (
+            <>
+              <button
+                onClick={() => setPlantTab('A1')}
+                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                  plantTab === 'A1'
+                    ? 'bg-white text-red-700 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Planta A1
+              </button>
+              <button
+                onClick={() => setPlantTab('A2')}
+                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                  plantTab === 'A2'
+                    ? 'bg-white text-red-700 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Planta A2
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setPlantTab(userPlant)}
+                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                  plantTab === userPlant
+                    ? 'bg-white text-red-700 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Mi Planta ({userPlant})
+              </button>
+              <button
+                onClick={() => setPlantTab(otherPlant)}
+                className={`px-4 py-2 rounded-md text-sm font-semibold transition ${
+                  plantTab === otherPlant
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Planta {otherPlant}
+              </button>
+            </>
+          )}
         </div>
 
         <Card>
@@ -275,6 +364,7 @@ export default function Page (){
                     <TableHeadCell className="px-3 py-2 text-[11px]">Aceptada</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Registrado por</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Notas</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Defectos</TableHeadCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -306,6 +396,14 @@ export default function Page (){
                             <span className="text-gray-400">-</span>
                           );
                         })()}
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-xs">
+                        <button
+                          onClick={() => handleViewDefects(unit)}
+                          className="text-purple-600 hover:text-purple-800 font-semibold text-xs underline"
+                        >
+                          Ver
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -415,6 +513,97 @@ export default function Page (){
                   </p>
                 )}
               </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Modal de Defectos */}
+        <Modal
+          isOpen={isDefectsModalOpen}
+          onClose={() => setIsDefectsModalOpen(false)}
+          title={`Defectos de Unidad: ${selectedUnitDefects?.vin || ''}`}
+          size="lg"
+        >
+          {selectedUnitDefects && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-xs text-gray-500">VIN</p>
+                  <p className="font-mono font-semibold text-sm">{selectedUnitDefects.vin}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Mercado</p>
+                  <p className="font-semibold text-sm">{selectedUnitDefects.market}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Carril</p>
+                  <p className="font-semibold text-sm">{selectedUnitDefects.lane}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Total Defectos</p>
+                  <p className="font-semibold text-sm">{selectedUnitDefects.defects?.length || 0}</p>
+                </div>
+              </div>
+
+              {loadingDefects ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                  <span className="ml-3 text-gray-500 text-sm">Cargando defectos...</span>
+                </div>
+              ) : selectedUnitDefects.defects && selectedUnitDefects.defects.length > 0 ? (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3">Lista de Defectos</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHeadCell className="px-3 py-2 text-xs">Tipo</TableHeadCell>
+                        <TableHeadCell className="px-3 py-2 text-xs">Zona</TableHeadCell>
+                        <TableHeadCell className="px-3 py-2 text-xs">Grado</TableHeadCell>
+                        <TableHeadCell className="px-3 py-2 text-xs">Estado</TableHeadCell>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedUnitDefects.defects.map((defect: any, idx: number) => (
+                        <TableRow key={defect.id || idx}>
+                          <TableCell className="px-3 py-2 text-sm font-medium">{defect.type}</TableCell>
+                          <TableCell className="px-3 py-2 text-sm">{defect.zone}</TableCell>
+                          <TableCell className="px-3 py-2 text-sm">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${
+                              defect.grade === 'V1' ? 'bg-yellow-100 text-yellow-800' :
+                              defect.grade === 'V2' ? 'bg-orange-100 text-orange-800' :
+                              defect.grade === 'V3' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {defect.grade}
+                            </span>
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-sm">
+                            {defect.isResolved ? (
+                              <span className="inline-flex items-center gap-1 text-green-700 text-xs font-semibold">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                                Resuelto
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-red-600 text-xs font-semibold">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                                Pendiente
+                              </span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-8">
+                  No hay defectos registrados para esta unidad
+                </p>
+              )}
             </div>
           )}
         </Modal>
