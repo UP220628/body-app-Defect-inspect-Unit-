@@ -64,7 +64,7 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full px-4 md:px-8 py-4 flex items-center bg-red-50/95 backdrop-blur-md shadow-sm">
       <Link href="/home" className="flex items-center">
-        <Image src="/images/Nissan_logo.png" alt="Nissan" width={60} height={60} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
+        <Image src="/images/Nissan_logo.png" alt="Nissan" width={90} height={90} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
       </Link>
 
       <nav className="hidden md:flex items-center gap-8 ml-auto mr-6">

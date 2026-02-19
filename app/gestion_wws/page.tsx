@@ -302,12 +302,12 @@ export default function Page() {
                         {activeTab === 'liberar' && (
                           <Button
                             size="sm"
-                            onClick={() => { setVqaUnit(u); setVqaComment(''); }}
-                            className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
+                            onClick={() => updateStatus(u.id, 'WWS_RELEASED')}
+                            className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
                             disabled={loading}
                           >
-                            <span className="hidden sm:inline">Solicitar VQA</span>
-                            <span className="sm:hidden">VQA</span>
+                            <span className="hidden sm:inline">Liberar WWS</span>
+                            <span className="sm:hidden">Liberar</span>
                           </Button>
                         )}
                       </TableCell>
@@ -335,6 +335,7 @@ export default function Page() {
             <div className="flex gap-2">
               {(selected?.defects||[]).length > 0 && (
                 <>
+                  {/* V1 presente: obligatorio a Body */}
                   {(selected!.defects||[]).some(d => d.grade === 'V1') && (
                     <Button
                       onClick={() => updateStatus(selected!.id, 'SENT')}
@@ -346,7 +347,8 @@ export default function Page() {
                       <span className="sm:hidden">Body</span>
                     </Button>
                   )}
-                  {(selected!.defects||[]).some(d => d.grade === 'V2') && !((selected!.defects||[]).some(d => d.grade === 'V1')) && (
+                  {/* Solo V2/V3 (sin V1): WWS decide si Body o pide validación VQA */}
+                  {!(selected!.defects||[]).some(d => d.grade === 'V1') && (
                     <>
                       <Button
                         onClick={() => updateStatus(selected!.id, 'SENT')}
@@ -363,30 +365,10 @@ export default function Page() {
                         className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
                         disabled={loading}
                       >
-                        Solicitar VQA
+                        <span className="hidden sm:inline">Solicitar VQA</span>
+                        <span className="sm:hidden">VQA</span>
                       </Button>
                     </>
-                  )}
-                  {(selected!.defects||[]).some(d => d.grade === 'V2') && (selected!.defects||[]).some(d => d.grade === 'V1') && (
-                    <Button
-                      onClick={() => updateStatus(selected!.id, 'SENT')}
-                      size="sm"
-                      className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
-                      disabled={loading}
-                    >
-                      <span className="hidden sm:inline">Enviar a Body</span>
-                      <span className="sm:hidden">Body</span>
-                    </Button>
-                  )}
-                  {(selected!.defects||[]).some(d => d.grade === 'V3') && !((selected!.defects||[]).some(d => d.grade === 'V1' || d.grade === 'V2')) && (
-                    <Button
-                      onClick={() => { setSelected(null); setVqaUnit(selected!); setVqaComment(''); }}
-                      size="sm"
-                      className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
-                      disabled={loading}
-                    >
-                      Solicitar VQA
-                    </Button>
                   )}
                 </>
               )}
@@ -482,7 +464,7 @@ export default function Page() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2=Moderado (Body o Liberar) | V3=Leve (Liberable)</p>
+                  <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2/V3=Leve/Moderado (Body o solicitar validación VQA para liberar directo)</p>
                 </div>
                 <Button onClick={handleAddDefect} className="w-full px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md transition-all rounded-lg">
                   +{' '}
@@ -613,8 +595,9 @@ export default function Page() {
 
             <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
               <p className="text-xs text-purple-700">
-                Al confirmar, la unidad pasará a <strong>Pendiente VQA</strong> y se notificará al
-                área de VQA para que revise los defectos y confirme o rechace la liberación.
+                Al confirmar, la unidad pasará a <strong>Pendiente VQA</strong>. Si VQA
+                valida que el defecto no requiere reparación, se liberará directamente. Si
+                VQA rechaza, la unidad se enviará a <strong>Body</strong> para reparación.
               </p>
             </div>
           </div>
