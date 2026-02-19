@@ -7,9 +7,10 @@ import { useAuth } from '@/lib/auth';
 import { ROLES } from '@/lib/permissions';
 
 type Provider = { id: number; name: string; code?: string };
-type User = { id: number; email: string; name: string; roleId: number; roleName?: string; providerId?: number | null; providerName?: string };
+type User = { id: number; email: string; name: string; roleId: number; roleName?: string; providerId?: number | null; providerName?: string; plant?: string | null };
 
 const ROLE_OPTIONS = ['WWS', 'SCM', 'BODY', 'CARRIER', 'VQA', 'ADMIN'];
+const PLANT_OPTIONS = ['A1', 'A2'] as const;
 
 const RoleBadge = ({ role }: { role?: string }) => {
   const colors: Record<string, string> = {
@@ -23,6 +24,16 @@ const RoleBadge = ({ role }: { role?: string }) => {
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colors[role ?? ''] ?? 'bg-gray-100 text-gray-600'}`}>
       {role ?? '-'}
+    </span>
+  );
+};
+
+const PlantBadge = ({ plant }: { plant?: string | null }) => {
+  if (!plant) return null;
+  const colors = plant === 'A1' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colors}`}>
+      {plant}
     </span>
   );
 };
@@ -46,6 +57,7 @@ export default function ProfilePage() {
   const [uPassword, setUPassword] = useState('');
   const [uRole, setURole] = useState('BODY');
   const [uProviderId, setUProviderId] = useState<number | null>(null);
+  const [uPlant, setUPlant] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
 
   // Password change
@@ -88,11 +100,13 @@ export default function ProfilePage() {
   const createUser = async () => {
     const body: any = { email: uEmail, password: uPassword, name: uName, roleId: uRole };
     if (uRole === 'CARRIER') body.providerId = uProviderId;
+    // ADMIN no necesita planta (ve ambas), otros roles sí
+    if (uRole !== 'ADMIN' && uPlant) body.plant = uPlant;
     const res = await fetch(`${API_BASE}/users`, { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
     if (res.ok) {
       const json = await res.json();
       setUsers(prev => [json.data, ...prev]);
-      setUEmail(''); setUName(''); setUPassword(''); setURole('BODY'); setUProviderId(null);
+      setUEmail(''); setUName(''); setUPassword(''); setURole('BODY'); setUProviderId(null); setUPlant(null);
     } else {
       const j = await res.json().catch(() => ({}));
       alert(j.error || 'Error al crear usuario');
@@ -105,6 +119,7 @@ export default function ProfilePage() {
     setUName(u.name);
     setURole(u.roleName || 'BODY');
     setUProviderId(u.providerId ?? null);
+    setUPlant(u.plant ?? null);
     setUPassword('');
   };
 
@@ -112,11 +127,13 @@ export default function ProfilePage() {
     const body: any = { email: uEmail, name: uName, roleId: uRole };
     if (uPassword) body.password = uPassword;
     body.providerId = uRole === 'CARRIER' ? uProviderId : null;
+    // ADMIN no necesita planta, otros roles sí
+    body.plant = uRole === 'ADMIN' ? null : uPlant;
     const res = await fetch(`${API_BASE}/users/${id}`, { method: 'PUT', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
     if (res.ok) {
       const j = await res.json();
       setUsers(u => u.map(x => x.id === id ? j.data : x));
-      setEditingId(null); setUPassword('');
+      setEditingId(null); setUPassword(''); setUPlant(null);
     } else {
       const j = await res.json().catch(() => ({}));
       alert(j.error || 'Error al actualizar usuario');
@@ -251,6 +268,13 @@ export default function ProfilePage() {
                         {providers.map(p => <option key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ''}</option>)}
                       </select>
                     )}
+                    {/* Campo Planta - solo para roles que no sean ADMIN */}
+                    {uRole !== 'ADMIN' && (
+                      <select className={selectCls} value={uPlant ?? ''} onChange={e => setUPlant(e.target.value || null)}>
+                        <option value="">Seleccionar planta</option>
+                        {PLANT_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    )}
                   </div>
                   <button className={btnPrimary} onClick={createUser}>Crear usuario</button>
                 </div>
@@ -274,10 +298,25 @@ export default function ProfilePage() {
                             <input className={inputCls} placeholder="Email" value={uEmail} onChange={e => setUEmail(e.target.value)} />
                             <input className={inputCls} placeholder="Nombre" value={uName} onChange={e => setUName(e.target.value)} />
                             <input className={inputCls} type="password" placeholder="Nueva contraseña (opcional)" value={uPassword} onChange={e => setUPassword(e.target.value)} />
+                            <select className={selectCls} value={uRole} onChange={e => setURole(e.target.value)}>
+                              {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                            </select>
+                            {uRole === 'CARRIER' && (
+                              <select className={selectCls} value={uProviderId ?? ''} onChange={e => setUProviderId(e.target.value ? Number(e.target.value) : null)}>
+                                <option value="">Seleccionar proveedor</option>
+                                {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                              </select>
+                            )}
+                            {uRole !== 'ADMIN' && (
+                              <select className={selectCls} value={uPlant ?? ''} onChange={e => setUPlant(e.target.value || null)}>
+                                <option value="">Sin planta</option>
+                                {PLANT_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                              </select>
+                            )}
                           </div>
                           <div className="flex gap-2 justify-end">
                             <button className={btnPrimary} onClick={() => saveEdit(u.id)}>Guardar</button>
-                            <button className={btnSecondary} onClick={() => { setEditingId(null); setUPassword(''); }}>Cancelar</button>
+                            <button className={btnSecondary} onClick={() => { setEditingId(null); setUPassword(''); setUPlant(null); }}>Cancelar</button>
                           </div>
                         </div>
                       ) : (
@@ -291,6 +330,7 @@ export default function ProfilePage() {
                               <p className="text-xs text-gray-400 truncate">{u.email}</p>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 <RoleBadge role={u.roleName} />
+                                <PlantBadge plant={u.plant} />
                                 {u.providerName && (
                                   <span className="inline-block px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-500">{u.providerName}</span>
                                 )}

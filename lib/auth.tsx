@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import type { Plant } from '@/types';
 
 interface User {
   id: number;
@@ -9,6 +10,7 @@ interface User {
   name: string;
   roleId: number;
   providerId?: number;
+  plant?: Plant;
 }
 
 interface AuthContextType {
