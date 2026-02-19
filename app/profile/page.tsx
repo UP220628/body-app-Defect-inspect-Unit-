@@ -124,14 +124,14 @@ export default function ProfilePage() {
   };
 
   const deleteUser = async (id: number) => {
-    if (!confirm('Â¿Eliminar este usuario?')) return;
+    if (!confirm('¿Eliminar este usuario?')) return;
     const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE', headers: authHeaders() });
     if (res.ok) setUsers(u => u.filter(x => x.id !== id));
     else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error al eliminar'); }
   };
 
   const deleteProvider = async (id: number) => {
-    if (!confirm('Â¿Eliminar este proveedor?')) return;
+    if (!confirm('¿Eliminar este proveedor?')) return;
     const res = await fetch(`${API_BASE}/providers/${id}`, { method: 'DELETE', headers: authHeaders() });
     if (res.ok) setProviders(p => p.filter(x => x.id !== id));
     else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error al eliminar'); }
@@ -140,9 +140,9 @@ export default function ProfilePage() {
   const changePassword = async () => {
     setPasswordMessage(null);
     setPasswordError(null);
-    if (!token) { setPasswordError('SesiÃ³n invÃ¡lida. Inicia sesiÃ³n de nuevo.'); return; }
+    if (!token) { setPasswordError('Sesión inválida. Inicia sesión de nuevo.'); return; }
     if (!currentPassword || !newPassword || !confirmPassword) { setPasswordError('Completa todos los campos'); return; }
-    if (newPassword !== confirmPassword) { setPasswordError('La nueva contraseÃ±a y la confirmaciÃ³n no coinciden'); return; }
+    if (newPassword !== confirmPassword) { setPasswordError('La nueva contraseña y la confirmación no coinciden'); return; }
     setIsChangingPassword(true);
     try {
       const res = await fetch(`${API_BASE}/auth/change-password`, {
@@ -151,10 +151,10 @@ export default function ProfilePage() {
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setPasswordError(data.error || 'No se pudo actualizar la contraseÃ±a'); return; }
-      setPasswordMessage('ContraseÃ±a actualizada correctamente');
+      if (!res.ok) { setPasswordError(data.error || 'No se pudo actualizar la contraseña'); return; }
+      setPasswordMessage('Contraseña actualizada correctamente');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-    } catch { setPasswordError('No se pudo actualizar la contraseÃ±a'); }
+    } catch (error) { setPasswordError('No se pudo actualizar la contraseña'); }
     finally { setIsChangingPassword(false); }
   };
 
@@ -172,8 +172,8 @@ export default function ProfilePage() {
         <div className="bg-white border-b border-gray-100 px-4 md:px-8 py-4">
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-semibold text-gray-900">ConfiguraciÃ³n</h1>
-              {user && <p className="text-sm text-gray-400">{user.name} Â· {user.email}</p>}
+              <h1 className="text-lg font-semibold text-gray-900">Configuración</h1>
+              {user && <p className="text-sm text-gray-400">{user.name} · {user.email}</p>}
             </div>
             <button onClick={() => router.push('/home')} className={btnSecondary}>
               Volver
@@ -183,20 +183,20 @@ export default function ProfilePage() {
 
         <div className="max-w-3xl mx-auto px-4 md:px-8 pt-6 space-y-6">
 
-          {/* Cambiar contraseÃ±a */}
+          {/* Cambiar contraseña */}
           <section className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50">
-              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Cambiar contraseÃ±a</h2>
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Cambiar contraseña</h2>
             </div>
             <div className="px-5 py-4 space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <input className={inputCls} type="password" placeholder="ContraseÃ±a actual" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
-                <input className={inputCls} type="password" placeholder="Nueva contraseÃ±a" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                <input className={inputCls} type="password" placeholder="Confirmar contraseÃ±a" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                <input className={inputCls} type="password" placeholder="Contraseña actual" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+                <input className={inputCls} type="password" placeholder="Nueva contraseña" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                <input className={inputCls} type="password" placeholder="Confirmar contraseña" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <button className={btnPrimary} onClick={changePassword} disabled={isChangingPassword}>
-                  {isChangingPassword ? 'Actualizando...' : 'Actualizar contraseÃ±a'}
+                  {isChangingPassword ? 'Actualizando...' : 'Actualizar contraseña'}
                 </button>
                 {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
                 {passwordMessage && <p className="text-xs text-green-600">{passwordMessage}</p>}
@@ -214,7 +214,7 @@ export default function ProfilePage() {
                 <div className="px-5 py-4 space-y-4">
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input className={`${inputCls} flex-1`} placeholder="Nombre del proveedor" value={name} onChange={e => setName(e.target.value)} />
-                    <input className={`${inputCls} w-full sm:w-28`} placeholder="CÃ³digo" value={code} onChange={e => setCode(e.target.value)} />
+                    <input className={`${inputCls} w-full sm:w-28`} placeholder="Código" value={code} onChange={e => setCode(e.target.value)} />
                     <button className={`${btnPrimary} shrink-0`} onClick={createProvider}>Agregar</button>
                   </div>
                   {providers.length > 0 && (
@@ -239,9 +239,9 @@ export default function ProfilePage() {
                 </div>
                 <div className="px-5 py-4 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <input className={inputCls} type="email" placeholder="Correo electrÃ³nico" value={uEmail} onChange={e => setUEmail(e.target.value)} />
+                    <input className={inputCls} type="email" placeholder="Correo electrónico" value={uEmail} onChange={e => setUEmail(e.target.value)} />
                     <input className={inputCls} placeholder="Nombre completo" value={uName} onChange={e => setUName(e.target.value)} />
-                    <input className={inputCls} type="password" placeholder="ContraseÃ±a" value={uPassword} onChange={e => setUPassword(e.target.value)} />
+                    <input className={inputCls} type="password" placeholder="Contraseña" value={uPassword} onChange={e => setUPassword(e.target.value)} />
                     <select className={selectCls} value={uRole} onChange={e => setURole(e.target.value)}>
                       {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
@@ -273,7 +273,7 @@ export default function ProfilePage() {
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <input className={inputCls} placeholder="Email" value={uEmail} onChange={e => setUEmail(e.target.value)} />
                             <input className={inputCls} placeholder="Nombre" value={uName} onChange={e => setUName(e.target.value)} />
-                            <input className={inputCls} type="password" placeholder="Nueva contraseÃ±a (opcional)" value={uPassword} onChange={e => setUPassword(e.target.value)} />
+                            <input className={inputCls} type="password" placeholder="Nueva contraseña (opcional)" value={uPassword} onChange={e => setUPassword(e.target.value)} />
                           </div>
                           <div className="flex gap-2 justify-end">
                             <button className={btnPrimary} onClick={() => saveEdit(u.id)}>Guardar</button>
