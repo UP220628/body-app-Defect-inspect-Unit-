@@ -66,7 +66,7 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full bg-red-50/95 backdrop-blur-md shadow-sm">
       {/* Fila superior: logo + acciones */}
-      <div className="w-full px-4 md:px-8 py-3 flex items-center justify-between">
+      <div className="w-full px-4 md:px-8 py-2 flex items-center justify-between">
         <Link href="/home" className="flex items-center shrink-0">
           <Image src="/images/Nissan_logo.png" alt="Nissan" width={80} height={80} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
         </Link>
@@ -121,9 +121,9 @@ export const Header = () => {
                   </div>
                 )}
                 {user && canAccessRoute(user.roleId, '/profile') && (
-                  <Link href="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">⚙️ Configuración</Link>
+                  <Link href="/profile" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">Configuración</Link>
                 )}
-                <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">🚪 Cerrar sesión</button>
+                <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">Cerrar sesión</button>
               </div>
             )}
           </div>
@@ -131,8 +131,8 @@ export const Header = () => {
       </div>
 
       {/* Nav desktop - segunda fila */}
-      <div className="hidden md:block border-t border-red-100">
-        <nav className="px-4 md:px-8 flex items-center gap-1 overflow-x-auto scrollbar-none">
+      <div className="hidden md:block border-t border-red-50/60">
+        <nav className="px-4 md:px-8 flex items-center justify-center gap-1 overflow-x-auto scrollbar-none">
           {availableRoutes.map(route => (
             <Link
               key={route.href}
@@ -176,9 +176,9 @@ export const Header = () => {
           </div>
           <div className="border-t border-gray-100 pt-1">
             {user && canAccessRoute(user.roleId, '/profile') && (
-              <Link href="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">⚙️ Configuración</Link>
+              <Link href="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">Configuración</Link>
             )}
-            <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">🚪 Cerrar sesión</button>
+            <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50">Cerrar sesión</button>
           </div>
         </div>
       )}

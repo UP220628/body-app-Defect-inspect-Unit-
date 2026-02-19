@@ -43,20 +43,27 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
+  const authHeaders = (extra?: Record<string, string>) => ({
+    'Authorization': token ? `Bearer ${token}` : '',
+    'x-user-role': 'WWS',
+    ...extra,
+  });
+
   useEffect(() => {
     if (!isAdmin) return;
-    fetch(`${API_BASE}/providers`)
+    fetch(`${API_BASE}/providers`, { headers: authHeaders() })
       .then(r => r.json())
       .then(j => { if (j.ok) setProviders(j.data || []); })
       .catch(() => {});
-    fetch(`${API_BASE}/users`, { headers: { 'x-user-role': 'WWS' } })
+    fetch(`${API_BASE}/users`, { headers: authHeaders() })
       .then(r => r.json())
       .then(j => { if (j.ok) setUsers(j.data || []); })
       .catch(() => {});
-  }, [API_BASE, isAdmin]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [API_BASE, isAdmin, token]);
 
   const createProvider = async () => {
-    const res = await fetch(`${API_BASE}/providers`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-role': 'WWS' }, body: JSON.stringify({ name, code }) });
+    const res = await fetch(`${API_BASE}/providers`, { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ name, code }) });
     if (res.ok) {
       setName(''); setCode('');
       const json = await res.json();
@@ -67,7 +74,7 @@ export default function ProfilePage() {
   const createUser = async () => {
     const body: any = { email: uEmail, password: uPassword, name: uName, roleId: uRole };
     if (uRole === 'CARRIER') body.providerId = uProviderId;
-    const res = await fetch(`${API_BASE}/users`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-user-role': 'WWS' }, body: JSON.stringify(body) });
+    const res = await fetch(`${API_BASE}/users`, { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
     if (res.ok) {
       const json = await res.json();
       setUsers(prev => [json.data, ...prev]);
@@ -90,7 +97,7 @@ export default function ProfilePage() {
     const body: any = { email: uEmail, name: uName, roleId: uRole };
     if (uPassword) body.password = uPassword;
     body.providerId = uRole === 'CARRIER' ? uProviderId : null;
-    const res = await fetch(`${API_BASE}/users/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-user-role': 'WWS' }, body: JSON.stringify(body) });
+    const res = await fetch(`${API_BASE}/users/${id}`, { method: 'PUT', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify(body) });
     if (res.ok) {
       const j = await res.json();
       setUsers(u => u.map(x => x.id === id ? j.data : x));
@@ -103,14 +110,14 @@ export default function ProfilePage() {
 
   const deleteUser = async (id: number) => {
     if (!confirm('Delete user?')) return;
-    const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE', headers: { 'x-user-role': 'WWS' } });
+    const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE', headers: authHeaders() });
     if (res.ok) setUsers(u => u.filter(x => x.id !== id));
     else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error deleting'); }
   };
 
   const deleteProvider = async (id: number) => {
     if (!confirm('Delete provider?')) return;
-    const res = await fetch(`${API_BASE}/providers/${id}`, { method: 'DELETE', headers: { 'x-user-role': 'WWS' } });
+    const res = await fetch(`${API_BASE}/providers/${id}`, { method: 'DELETE', headers: authHeaders() });
     if (res.ok) setProviders(p => p.filter(x => x.id !== id));
     else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error deleting'); }
   };
