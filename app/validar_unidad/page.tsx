@@ -233,7 +233,7 @@ const ValidarUnidadPage = () => {
                 <Button
                   onClick={() => selected && updateStatus(selected.id, 'SENT')}
                   size="sm"
-                  className="bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 text-xs px-3 py-1.5"
+                  className="bg-red-500 hover:bg-red-200 text-red-700 border border-red-300 text-xs px-3 py-1.5"
                   disabled={loading}
                 >
                   Rechazar — Enviar a Body
