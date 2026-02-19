@@ -22,7 +22,7 @@ const RoleBadge = ({ role }: { role?: string }) => {
   };
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colors[role ?? ''] ?? 'bg-gray-100 text-gray-600'}`}>
-      {role ?? 'â€”'}
+      {role ?? '-'}
     </span>
   );
 };
