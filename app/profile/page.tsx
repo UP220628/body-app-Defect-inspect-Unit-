@@ -1,19 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Container from '@mui/material/Container';
-import Grid from '@mui/material/Grid';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import MenuItem from '@mui/material/MenuItem';
-import Avatar from '@mui/material/Avatar';
-import Box from '@mui/material/Box';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
-import Chip from '@mui/material/Chip';
-import Stack from '@mui/material/Stack';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { ROLES } from '@/lib/permissions';
@@ -21,21 +9,46 @@ import { ROLES } from '@/lib/permissions';
 type Provider = { id: number; name: string; code?: string };
 type User = { id: number; email: string; name: string; roleId: number; roleName?: string; providerId?: number | null; providerName?: string };
 
+const ROLE_OPTIONS = ['WWS', 'SCM', 'BODY', 'CARRIER', 'VQA', 'ADMIN'];
+
+const RoleBadge = ({ role }: { role?: string }) => {
+  const colors: Record<string, string> = {
+    WWS: 'bg-blue-100 text-blue-700',
+    SCM: 'bg-purple-100 text-purple-700',
+    BODY: 'bg-orange-100 text-orange-700',
+    CARRIER: 'bg-green-100 text-green-700',
+    VQA: 'bg-pink-100 text-pink-700',
+    ADMIN: 'bg-red-100 text-red-700',
+  };
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${colors[role ?? ''] ?? 'bg-gray-100 text-gray-600'}`}>
+      {role ?? 'â€”'}
+    </span>
+  );
+};
+
 export default function ProfilePage() {
   const router = useRouter();
   const API_BASE = (process.env.NEXT_PUBLIC_API_URL as string) || 'http://localhost:3001';
   const { token, user } = useAuth();
   const isAdmin = user?.roleId === ROLES.ADMIN;
+
   const [providers, setProviders] = useState<Provider[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+
+  // Provider form
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+
+  // User form
   const [uEmail, setUEmail] = useState('');
   const [uName, setUName] = useState('');
   const [uPassword, setUPassword] = useState('');
   const [uRole, setURole] = useState('BODY');
   const [uProviderId, setUProviderId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
+
+  // Password change
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -63,6 +76,7 @@ export default function ProfilePage() {
   }, [API_BASE, isAdmin, token]);
 
   const createProvider = async () => {
+    if (!name.trim()) return;
     const res = await fetch(`${API_BASE}/providers`, { method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ name, code }) });
     if (res.ok) {
       setName(''); setCode('');
@@ -81,16 +95,17 @@ export default function ProfilePage() {
       setUEmail(''); setUName(''); setUPassword(''); setURole('BODY'); setUProviderId(null);
     } else {
       const j = await res.json().catch(() => ({}));
-      alert(j.error || 'Error creating user');
+      alert(j.error || 'Error al crear usuario');
     }
   };
 
-  const startEdit = (user: User) => {
-    setEditingId(user.id);
-    setUEmail(user.email);
-    setUName(user.name);
-    setURole(user.roleName || 'BODY');
-    setUProviderId(user.providerId ?? null);
+  const startEdit = (u: User) => {
+    setEditingId(u.id);
+    setUEmail(u.email);
+    setUName(u.name);
+    setURole(u.roleName || 'BODY');
+    setUProviderId(u.providerId ?? null);
+    setUPassword('');
   };
 
   const saveEdit = async (id: number) => {
@@ -104,422 +119,198 @@ export default function ProfilePage() {
       setEditingId(null); setUPassword('');
     } else {
       const j = await res.json().catch(() => ({}));
-      alert(j.error || 'Error updating user');
+      alert(j.error || 'Error al actualizar usuario');
     }
   };
 
   const deleteUser = async (id: number) => {
-    if (!confirm('Delete user?')) return;
+    if (!confirm('Â¿Eliminar este usuario?')) return;
     const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE', headers: authHeaders() });
     if (res.ok) setUsers(u => u.filter(x => x.id !== id));
-    else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error deleting'); }
+    else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error al eliminar'); }
   };
 
   const deleteProvider = async (id: number) => {
-    if (!confirm('Delete provider?')) return;
+    if (!confirm('Â¿Eliminar este proveedor?')) return;
     const res = await fetch(`${API_BASE}/providers/${id}`, { method: 'DELETE', headers: authHeaders() });
     if (res.ok) setProviders(p => p.filter(x => x.id !== id));
-    else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error deleting'); }
+    else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error al eliminar'); }
   };
 
   const changePassword = async () => {
     setPasswordMessage(null);
     setPasswordError(null);
-
-    if (!token) {
-      setPasswordError('Sesión inválida. Inicia sesión de nuevo.');
-      return;
-    }
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('Completa todos los campos');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError('La nueva contraseña y la confirmación no coinciden');
-      return;
-    }
-
+    if (!token) { setPasswordError('SesiÃ³n invÃ¡lida. Inicia sesiÃ³n de nuevo.'); return; }
+    if (!currentPassword || !newPassword || !confirmPassword) { setPasswordError('Completa todos los campos'); return; }
+    if (newPassword !== confirmPassword) { setPasswordError('La nueva contraseÃ±a y la confirmaciÃ³n no coinciden'); return; }
     setIsChangingPassword(true);
     try {
       const res = await fetch(`${API_BASE}/auth/change-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ currentPassword, newPassword }),
       });
-
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setPasswordError(data.error || 'No se pudo actualizar la contraseña');
-        return;
-      }
-
-      setPasswordMessage('Contraseña actualizada correctamente');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (error) {
-      setPasswordError('No se pudo actualizar la contraseña');
-    } finally {
-      setIsChangingPassword(false);
-    }
+      if (!res.ok) { setPasswordError(data.error || 'No se pudo actualizar la contraseÃ±a'); return; }
+      setPasswordMessage('ContraseÃ±a actualizada correctamente');
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+    } catch { setPasswordError('No se pudo actualizar la contraseÃ±a'); }
+    finally { setIsChangingPassword(false); }
   };
 
+  const inputCls = 'w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent transition';
+  const selectCls = `${inputCls} appearance-none`;
+  const btnPrimary = 'px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition disabled:opacity-50';
+  const btnSecondary = 'px-4 py-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium transition';
+  const btnDanger = 'px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition';
+  const btnEdit = 'px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-medium transition';
+
   return (
-    
     <ProtectedRoute>
-      <Container maxWidth="md" sx={{ py: 8 }}>
-      <Card elevation={1} sx={{ p: 3, borderRadius: 3, bgcolor: 'white' }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
-          <Stack direction="row" alignItems="center" spacing={2}>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 48, height: 48 }}>A</Avatar>
-            <Typography variant="h5" component="h1" fontWeight={600}>Profile Settings</Typography>
-          </Stack>
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" onClick={() => router.push('/home')} sx={{ borderRadius: 2 }}>
-              Back
-            </Button>
-            <Button variant="contained" color="error" onClick={() => router.push('/')} sx={{ borderRadius: 2 }}>
-              Log out
-            </Button>
-          </Stack>
-        </Stack>
+      <div className="min-h-screen bg-gray-50 pb-16">
+        {/* Page header */}
+        <div className="bg-white border-b border-gray-100 px-4 md:px-8 py-4">
+          <div className="max-w-3xl mx-auto flex items-center justify-between">
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">ConfiguraciÃ³n</h1>
+              {user && <p className="text-sm text-gray-400">{user.name} Â· {user.email}</p>}
+            </div>
+            <button onClick={() => router.push('/home')} className={btnSecondary}>
+              Volver
+            </button>
+          </div>
+        </div>
 
-        <Box sx={{ p: 2, mb: 3, bgcolor: '#f9fafb', borderRadius: 2 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Cambiar contraseña</Typography>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Contraseña actual"
-                type="password"
-                value={currentPassword}
-                onChange={e => setCurrentPassword(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Nueva contraseña"
-                type="password"
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Confirmar nueva contraseña"
-                type="password"
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={changePassword}
-                disabled={isChangingPassword}
-                sx={{ borderRadius: 2 }}
-              >
-                {isChangingPassword ? 'Actualizando...' : 'Actualizar contraseña'}
-              </Button>
-            </Grid>
-          </Grid>
-          {passwordError && (
-            <Typography variant="body2" sx={{ mt: 2, color: 'error.main' }}>
-              {passwordError}
-            </Typography>
-          )}
-          {passwordMessage && (
-            <Typography variant="body2" sx={{ mt: 2, color: 'success.main' }}>
-              {passwordMessage}
-            </Typography>
-          )}
-        </Box>
+        <div className="max-w-3xl mx-auto px-4 md:px-8 pt-6 space-y-6">
 
-        {isAdmin && (
-          <>
-            <Box sx={{ p: 2, mb: 3, bgcolor: '#f9fafb', borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Manage Providers</Typography>
-              <Grid container spacing={2} alignItems="center">
-                <Grid size={{ xs: 12, md: 5 }}>
-                  <TextField 
-                    fullWidth 
-                    size="small"
-                    label="Provider name" 
-                    value={name} 
-                    onChange={e => setName(e.target.value)}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 3 }}>
-                  <TextField 
-                    fullWidth 
-                    size="small"
-                    label="Code" 
-                    value={code} 
-                    onChange={e => setCode(e.target.value)}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <Button 
-                    fullWidth 
-                    variant="contained" 
-                    onClick={createProvider}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    Add Provider
-                  </Button>
-                </Grid>
-              </Grid>
-              
-              {providers.length > 0 && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                    Active Providers: {providers.length}
-                  </Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1 }}>
-                    {providers.map(p => (
-                      <Chip
-                        key={p.id}
-                        label={`${p.name} ${p.code ? `(${p.code})` : ''}`}
-                        size="small"
-                        onDelete={() => deleteProvider(p.id)}
-                        sx={{ bgcolor: '#e0e7ff', color: '#4338ca' }}
-                      />
-                    ))}
-                  </Stack>
-                </Box>
-              )}
-            </Box>
+          {/* Cambiar contraseÃ±a */}
+          <section className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-50">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Cambiar contraseÃ±a</h2>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input className={inputCls} type="password" placeholder="ContraseÃ±a actual" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} />
+                <input className={inputCls} type="password" placeholder="Nueva contraseÃ±a" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                <input className={inputCls} type="password" placeholder="Confirmar contraseÃ±a" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <button className={btnPrimary} onClick={changePassword} disabled={isChangingPassword}>
+                  {isChangingPassword ? 'Actualizando...' : 'Actualizar contraseÃ±a'}
+                </button>
+                {passwordError && <p className="text-xs text-red-600">{passwordError}</p>}
+                {passwordMessage && <p className="text-xs text-green-600">{passwordMessage}</p>}
+              </div>
+            </div>
+          </section>
 
-            <Box sx={{ p: 2, mb: 3, bgcolor: '#f9fafb', borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Create User</Typography>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField 
-                    fullWidth 
-                    size="small"
-                    label="Email" 
-                    type="email"
-                    value={uEmail} 
-                    onChange={e => setUEmail(e.target.value)}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField 
-                    fullWidth 
-                    size="small"
-                    label="Full name" 
-                    value={uName} 
-                    onChange={e => setUName(e.target.value)}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField 
-                    fullWidth 
-                    size="small"
-                    label="Password" 
-                    type="password"
-                    value={uPassword} 
-                    onChange={e => setUPassword(e.target.value)}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <TextField 
-                    select 
-                    fullWidth 
-                    size="small"
-                    label="Role" 
-                    value={uRole} 
-                    onChange={e => setURole(e.target.value)}
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                  >
-                    <MenuItem value="WWS">WWS</MenuItem>
-                    <MenuItem value="SCM">SCM</MenuItem>
-                    <MenuItem value="BODY">BODY</MenuItem>
-                    <MenuItem value="CARRIER">CARRIER</MenuItem>
-                  </TextField>
-                </Grid>
-                
-                {uRole === 'CARRIER' && (
-                  <Grid size={12}>
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      label="Provider"
-                      value={uProviderId ?? ''}
-                      onChange={e => setUProviderId(e.target.value ? Number(e.target.value) : null)}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                    >
-                      <MenuItem value="">Select provider</MenuItem>
+          {isAdmin && (
+            <>
+              {/* Proveedores */}
+              <section className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-50">
+                  <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Proveedores</h2>
+                </div>
+                <div className="px-5 py-4 space-y-4">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input className={`${inputCls} flex-1`} placeholder="Nombre del proveedor" value={name} onChange={e => setName(e.target.value)} />
+                    <input className={`${inputCls} w-full sm:w-28`} placeholder="CÃ³digo" value={code} onChange={e => setCode(e.target.value)} />
+                    <button className={`${btnPrimary} shrink-0`} onClick={createProvider}>Agregar</button>
+                  </div>
+                  {providers.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
                       {providers.map(p => (
-                        <MenuItem key={p.id} value={p.id}>
-                          {p.name} {p.code && `(${p.code})`}
-                        </MenuItem>
+                        <div key={p.id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 border border-gray-100 text-sm text-gray-700">
+                          <span>{p.name}{p.code ? ` (${p.code})` : ''}</span>
+                          <button onClick={() => deleteProvider(p.id)} className="text-gray-300 hover:text-red-500 transition leading-none" title="Eliminar">
+                            <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 fill-current"><path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/></svg>
+                          </button>
+                        </div>
                       ))}
-                    </TextField>
-                  </Grid>
-                )}
-                
-                <Grid size={12}>
-                  <Button 
-                    fullWidth 
-                    variant="contained" 
-                    color="success"
-                    onClick={createUser}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    Create User
-                  </Button>
-                </Grid>
-              </Grid>
-            </Box>
+                    </div>
+                  )}
+                </div>
+              </section>
 
-            <Box sx={{ p: 2, bgcolor: '#f9fafb', borderRadius: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Users</Typography>
-              <Stack spacing={1}>
-                {users.map(u => (
-                  <Box 
-                    key={u.id} 
-                    sx={{ 
-                      p: 2, 
-                      bgcolor: 'white', 
-                      borderRadius: 2,
-                      border: '1px solid #e5e7eb'
-                    }}
-                  >
-                    {editingId === u.id ? (
-                      <Grid container spacing={1}>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                          <TextField 
-                            fullWidth 
-                            size="small"
-                            label="Email"
-                            value={uEmail} 
-                            onChange={e => setUEmail(e.target.value)}
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                          <TextField 
-                            fullWidth 
-                            size="small"
-                            label="Name"
-                            value={uName} 
-                            onChange={e => setUName(e.target.value)}
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                          <TextField 
-                            fullWidth 
-                            size="small"
-                            label="New password"
-                            type="password"
-                            value={uPassword} 
-                            onChange={e => setUPassword(e.target.value)}
-                            placeholder="Optional"
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
-                          />
-                        </Grid>
-                        <Grid size={12}>
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
-                            <Button 
-                              variant="contained" 
-                              size="small"
-                              onClick={() => saveEdit(u.id)}
-                              sx={{ borderRadius: 2 }}
-                            >
-                              Save
-                            </Button>
-                            <Button 
-                              variant="outlined" 
-                              size="small"
-                              onClick={() => { setEditingId(null); setUPassword(''); }}
-                              sx={{ borderRadius: 2 }}
-                            >
-                              Cancel
-                            </Button>
-                          </Stack>
-                        </Grid>
-                      </Grid>
-                    ) : (
-                      <Stack direction="row" alignItems="center" justifyContent="space-between">
-                        <Stack direction="row" spacing={2} alignItems="center">
-                          <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40 }}>
-                            {u.name.charAt(0).toUpperCase()}
-                          </Avatar>
-                          <Box>
-                            <Typography variant="body1" fontWeight={600}>
-                              {u.name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {u.email}
-                            </Typography>
-                            <Stack direction="row" spacing={0.5} sx={{ mt: 0.5 }}>
-                              <Chip 
-                                label={u.roleName} 
-                                size="small"
-                                sx={{ fontSize: '0.75rem', height: 20 }}
-                              />
-                              {u.providerName && (
-                                <Chip 
-                                  label={u.providerName} 
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ fontSize: '0.75rem', height: 20 }}
-                                />
-                              )}
-                            </Stack>
-                          </Box>
-                        </Stack>
-                        <Stack direction="row" spacing={1}>
-                          <Button 
-                            variant="outlined" 
-                            size="small"
-                            onClick={() => startEdit(u)}
-                            sx={{ borderRadius: 2 }}
-                          >
-                            Edit
-                          </Button>
-                          <Button 
-                            variant="contained" 
-                            color="error"
-                            size="small"
-                            onClick={() => deleteUser(u.id)}
-                            sx={{ borderRadius: 2 }}
-                          >
-                            Delete
-                          </Button>
-                        </Stack>
-                      </Stack>
+              {/* Crear usuario */}
+              <section className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-50">
+                  <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Nuevo usuario</h2>
+                </div>
+                <div className="px-5 py-4 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input className={inputCls} type="email" placeholder="Correo electrÃ³nico" value={uEmail} onChange={e => setUEmail(e.target.value)} />
+                    <input className={inputCls} placeholder="Nombre completo" value={uName} onChange={e => setUName(e.target.value)} />
+                    <input className={inputCls} type="password" placeholder="ContraseÃ±a" value={uPassword} onChange={e => setUPassword(e.target.value)} />
+                    <select className={selectCls} value={uRole} onChange={e => setURole(e.target.value)}>
+                      {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    {uRole === 'CARRIER' && (
+                      <select className={selectCls} value={uProviderId ?? ''} onChange={e => setUProviderId(e.target.value ? Number(e.target.value) : null)}>
+                        <option value="">Seleccionar proveedor</option>
+                        {providers.map(p => <option key={p.id} value={p.id}>{p.name}{p.code ? ` (${p.code})` : ''}</option>)}
+                      </select>
                     )}
-                  </Box>
-                ))}
-              </Stack>
-            </Box>
-          </>
-        )}
-      </Card>
-    </Container>
+                  </div>
+                  <button className={btnPrimary} onClick={createUser}>Crear usuario</button>
+                </div>
+              </section>
+
+              {/* Lista de usuarios */}
+              <section className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Usuarios</h2>
+                  <span className="text-xs text-gray-400">{users.length} registros</span>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {users.length === 0 && (
+                    <p className="px-5 py-6 text-sm text-gray-400 text-center">Sin usuarios registrados</p>
+                  )}
+                  {users.map(u => (
+                    <div key={u.id} className="px-5 py-3">
+                      {editingId === u.id ? (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <input className={inputCls} placeholder="Email" value={uEmail} onChange={e => setUEmail(e.target.value)} />
+                            <input className={inputCls} placeholder="Nombre" value={uName} onChange={e => setUName(e.target.value)} />
+                            <input className={inputCls} type="password" placeholder="Nueva contraseÃ±a (opcional)" value={uPassword} onChange={e => setUPassword(e.target.value)} />
+                          </div>
+                          <div className="flex gap-2 justify-end">
+                            <button className={btnPrimary} onClick={() => saveEdit(u.id)}>Guardar</button>
+                            <button className={btnSecondary} onClick={() => { setEditingId(null); setUPassword(''); }}>Cancelar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-sm font-semibold shrink-0">
+                              {u.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-800 truncate">{u.name}</p>
+                              <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                <RoleBadge role={u.roleName} />
+                                {u.providerName && (
+                                  <span className="inline-block px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-500">{u.providerName}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button className={btnEdit} onClick={() => startEdit(u)}>Editar</button>
+                            <button className={btnDanger} onClick={() => deleteUser(u.id)}>Eliminar</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
+        </div>
+      </div>
     </ProtectedRoute>
   );
 }
