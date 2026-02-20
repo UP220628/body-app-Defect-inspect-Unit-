@@ -17,6 +17,7 @@ import { Modal } from "@/components/ui/Modal";
 import { GradeBadge } from "@/components/units/GradeBadge";
 import { StatusBadge } from "@/components/units/StatusBadge";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
+import { useAuth } from "@/lib/auth";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
 
@@ -44,6 +45,7 @@ type Unit = {
 };
 
 export default function Page() {
+  const { user, token } = useAuth();
   const [units, setUnits] = useState<Unit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
 
@@ -55,9 +57,12 @@ export default function Page() {
   useEffect(() => {
     // Load RECEIVED units from backend, include priority fields
     const load = async () => {
+      if (!token) return;
       setLoading(true);
       try {
-        const r = await fetch(`${API_BASE}/units?status=RECEIVED`);
+        const r = await fetch(`${API_BASE}/units?status=RECEIVED`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
         const j = await r.json();
         if (j?.ok) {
           const results: Unit[] = [];
@@ -80,7 +85,7 @@ export default function Page() {
       finally { setLoading(false); }
     };
     load();
-  }, []);
+  }, [token]);
 
   const pendingToPrioritize = useMemo(
     () =>
@@ -124,8 +129,8 @@ export default function Page() {
       try {
         const resp = await fetch(`${API_BASE}/units/${selectedUnit.id}/priority`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ note, assignedById: 1 })
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ note, assignedById: user?.id || 1 })
         });
         const json = await resp.json();
         if (json?.ok) {
@@ -187,8 +192,8 @@ export default function Page() {
       if (unitIds.length > 0) {
         await fetch(`${API_BASE}/units/priority/order`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ unitIds, assignedById: 1 })
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ unitIds, assignedById: user?.id || 1 })
         });
       }
     } finally {

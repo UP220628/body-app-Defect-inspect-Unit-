@@ -54,7 +54,9 @@ export default function Page() {
       const statuses = ['RECEIVED', 'IN_REPAIR', 'UNAVAILABLE'];
       const results: Unit[] = [];
       for (const st of statuses) {
-        const r = await fetch(`${API_BASE}/units?status=${st}`);
+        const r = await fetch(`${API_BASE}/units?status=${st}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
         const j = await r.json();
         if (j?.ok && Array.isArray(j.data)) {
           results.push(...j.data);
@@ -67,7 +69,7 @@ export default function Page() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   useUnitEvents({
     token,
@@ -110,7 +112,7 @@ export default function Page() {
       
       const resp = await fetch(`${API_BASE}/units/${selectedUnit.id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)
       });
       const json = await resp.json();
@@ -138,7 +140,7 @@ export default function Page() {
             const unitIds = remainingUnits.map(u => u.id);
             await fetch(`${API_BASE}/units/priority/order`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ 
                 unitIds, 
                 assignedById: 1 
@@ -146,7 +148,9 @@ export default function Page() {
             });
             
             // Recargar datos para obtener los nuevos ranks
-            const r = await fetch(`${API_BASE}/units?status=RECEIVED`);
+            const r = await fetch(`${API_BASE}/units?status=RECEIVED`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
             const j = await r.json();
             if (j?.ok) {
               setAllUnits(prev => prev.map(u => {
@@ -187,7 +191,7 @@ export default function Page() {
       
       const resp = await fetch(`${API_BASE}/units/${selectedUnit.id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)
       });
       const json = await resp.json();
@@ -209,7 +213,7 @@ export default function Page() {
             const unitIds = remainingUnits.map(u => u.id);
             await fetch(`${API_BASE}/units/priority/order`, {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ 
                 unitIds, 
                 assignedById: 1 
@@ -217,7 +221,9 @@ export default function Page() {
             });
             
             // Recargar datos para obtener los nuevos ranks
-            const r = await fetch(`${API_BASE}/units?status=RECEIVED`);
+            const r = await fetch(`${API_BASE}/units?status=RECEIVED`, {
+              headers: { 'Authorization': `Bearer ${token}` },
+            });
             const j = await r.json();
             if (j?.ok) {
               setAllUnits(prev => prev.map(u => {
@@ -260,7 +266,7 @@ export default function Page() {
     try {
       const resp = await fetch(`${API_BASE}/units/${selectedUnit.id}/estimated-time`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ 
           estimatedRepairHours: parseFloat(estimatedHours), 
           updatedById: user.id 
@@ -298,7 +304,7 @@ export default function Page() {
       
       const resp = await fetch(`${API_BASE}/units/${selectedUnit.id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)
       });
       const json = await resp.json();
