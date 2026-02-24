@@ -32,7 +32,7 @@ interface ReportFormProps {
 const defectTypes: DefectType[] = ['Rayón', 'Abolladura', 'Rotura', 'Golpe', 'Óxido', 'Otro'];
 const zones: Zone[] = ['Puerta delantera', 'Puerta trasera', 'Cofre', 'Cajuela', 'Parachoques', 'Espejo', 'Techo', 'Fascia', 'Panel lateral', 'Otro'];
 const grades: Grade[] = ['V1', 'V2'];
-const mercados = ['Domestico', 'Exportacion', 'Translado'];
+const mercados = ['Domestico', 'Exportacion', 'Traslado'];
 
 const gradeColors: Record<Grade, string> = {
   V1: 'bg-red-100 text-red-800',
