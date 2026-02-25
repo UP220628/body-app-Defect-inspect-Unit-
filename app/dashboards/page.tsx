@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DefectCounters } from "@/components/dashboards/DefectCounters";
 import { ParetoChart } from "@/components/dashboards/ParetoChart";
+import { ResumenPanel } from "@/components/dashboards/ResumenPanel";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth";
@@ -246,35 +247,13 @@ export default function Page (){
             </CardBody>
           </Card>
 
-          {/* Resumen */}
+          {/* Resumen interactivo */}
           <Card className="col-span-1 lg:col-span-5">
             <CardHeader>
               <div className="text-sm font-medium text-gray-700">Resumen {filterMode === 'today' ? 'Hoy' : 'Total'}</div>
             </CardHeader>
             <CardBody>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Unidades totales</span>
-                  <span className="text-2xl font-bold text-gray-900">
-                    {monthlyData.reduce((sum, d) => sum + d.count, 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                  <span className="text-sm text-gray-600">Promedio diario</span>
-                  <span className="text-2xl font-bold text-gray-900">
-                    {monthlyData.length > 0 
-                      ? Math.round(monthlyData.reduce((sum, d) => sum + d.count, 0) / monthlyData.length)
-                      : 0
-                    }
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                  <span className="text-sm text-gray-600">Últimas 24h</span>
-                  <span className="text-2xl font-bold text-blue-600">
-                    {monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].count : 0}
-                  </span>
-                </div>
-              </div>
+              <ResumenPanel filterMode={filterMode} />
             </CardBody>
           </Card>
 
