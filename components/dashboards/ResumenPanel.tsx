@@ -1,24 +1,19 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
+  PieChart,
+  Pie,
   Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from 'recharts';
-
-// ─── Costants ────────────────────────────────────────────────────────────────
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
-/** Mapeo dígito 5-6 del VIN → nombre del modelo */
 const MODEL_MAP: Record<string, string> = {
   N8: 'Versa',
   K3: 'March',
@@ -32,492 +27,260 @@ const GRADE_COLORS: Record<string, string> = {
   V3: '#60a5fa',
 };
 
-const MODEL_COLORS = ['#6366f1', '#10b981', '#f97316', '#e11d48'];
-
-// ─── Utilities ────────────────────────────────────────────────────────────────
-
-function getModelFromVin(vin: string): string {
-  if (!vin || vin.length < 6) return 'Otro';
-  const key = vin.substring(4, 6).toUpperCase();
-  return MODEL_MAP[key] ?? 'Otro';
-}
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+const MODEL_COLORS = ['#6366f1', '#10b981', '#f97316', '#e11d48', '#94a3b8'];
+const TYPE_COLORS  = ['#8b5cf6','#06b6d4','#84cc16','#f43f5e','#fb923c','#a78bfa','#34d399','#fbbf24','#60a5fa','#f472b6'];
 
 type DefectView = 'defects' | 'models' | 'time';
-type TimeRange = 'today' | 'week' | 'month';
+type TimeRange  = 'today'   | 'week'   | 'month';
 
-interface UnitRaw {
-  id: number;
-  vin: string;
-  createdAt: string;
-  defects?: Array<{ grade: string; type?: string; defectType?: string }>;
-}
+interface ModelRow { model_code: string; grade: string; count: number; }
+interface TypeRow  { type: string; grade: string; count: number; }
+interface PieEntry { name: string; value: number; color: string; }
 
-interface ModelDefectRow {
-  model: string;
-  V1: number;
-  V2: number;
-  V3: number;
-  total: number;
-}
-
-interface DefectTypeRow {
-  type: string;
-  count: number;
-}
-
-// ─── Sub-charts ───────────────────────────────────────────────────────────────
-
-const GradeBarChart = ({ data }: { data: Array<{ grade: string; count: number }> }) => (
-  <ResponsiveContainer width="100%" height={180}>
-    <BarChart data={data} margin={{ top: 8, right: 10, left: -10, bottom: 0 }}>
-      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-      <XAxis dataKey="grade" stroke="#6b7280" style={{ fontSize: '12px' }} />
-      <YAxis stroke="#6b7280" style={{ fontSize: '11px' }} allowDecimals={false} />
-      <Tooltip
-        formatter={(v) => [v ?? 0, 'Cantidad']}
-        contentStyle={{ fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb' }}
-      />
-      <Bar dataKey="count" name="Cantidad" radius={[4, 4, 0, 0]}>
-        {data.map(d => (
-          <Cell key={d.grade} fill={GRADE_COLORS[d.grade] ?? '#94a3b8'} />
-        ))}
-      </Bar>
-    </BarChart>
-  </ResponsiveContainer>
-);
-
-const ModelStackedChart = ({ data }: { data: ModelDefectRow[] }) => {
-  const models = data.map(d => d.model);
-  const colors = models.reduce<Record<string, string>>((acc, m, i) => {
-    acc[m] = MODEL_COLORS[i % MODEL_COLORS.length];
-    return acc;
-  }, {});
-
+const RADIAN = Math.PI / 180;
+const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  if (percent < 0.05) return null;
+  const r = innerRadius + (outerRadius - innerRadius) * 0.55;
+  const x = cx + r * Math.cos(-midAngle * RADIAN);
+  const y = cy + r * Math.sin(-midAngle * RADIAN);
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <BarChart data={data} margin={{ top: 8, right: 10, left: -10, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-        <XAxis dataKey="model" stroke="#6b7280" style={{ fontSize: '11px' }} />
-        <YAxis stroke="#6b7280" style={{ fontSize: '11px' }} allowDecimals={false} />
-        <Tooltip
-          contentStyle={{ fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb' }}
-        />
-        {data.map((d, i) => (
-          <Bar
-            key={d.model}
-            dataKey="total"
-            name={d.model}
-            stackId="a"
-            fill={MODEL_COLORS[i % MODEL_COLORS.length]}
-            radius={i === data.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]}
-          />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central"
+      style={{ fontSize: '11px', fontWeight: 700, pointerEvents: 'none' }}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
   );
 };
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+const DonutChart = ({ data, title }: { data: PieEntry[]; title?: string }) => {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (total === 0) return (
+    <div className="flex items-center justify-center h-[180px] text-gray-400 text-sm">Sin datos</div>
+  );
+  return (
+    <div>
+      {title && <p className="text-xs font-medium text-gray-500 mb-1 text-center">{title}</p>}
+      <ResponsiveContainer width="100%" height={190}>
+        <PieChart>
+          <Pie data={data} cx="50%" cy="50%" innerRadius={48} outerRadius={78}
+            paddingAngle={2} dataKey="value" labelLine={false} label={renderLabel}>
+            {data.map(e => <Cell key={e.name} fill={e.color} />)}
+          </Pie>
+          <Tooltip formatter={(val, name) => [val ?? 0, name]}
+            contentStyle={{ fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb' }} />
+          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px' }}
+            formatter={(v) => <span className="text-gray-700">{v}</span>} />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
 
 export const ResumenPanel = ({ filterMode }: { filterMode: 'today' | 'all' }) => {
   const { token } = useAuth();
 
-  // view tabs
-  const [view, setView] = useState<DefectView>('defects');
-
-  // time-range filter (for "time" view)
-  const [timeRange, setTimeRange] = useState<TimeRange>('today');
-
-  // grade filter chips (multi-select) for "defects" view
+  const [view,         setView]         = useState<DefectView>('defects');
+  const [timeRange,    setTimeRange]    = useState<TimeRange>('today');
   const [activeGrades, setActiveGrades] = useState<Set<string>>(new Set(['V1', 'V2', 'V3']));
+  const [modelRows,    setModelRows]    = useState<ModelRow[]>([]);
+  const [typeRows,     setTypeRows]     = useState<TypeRow[]>([]);
+  const [loading,      setLoading]      = useState(true);
 
-  // model filter chips for "models" view
-  const [activeModels, setActiveModels] = useState<Set<string>>(
-    new Set(['Versa', 'March', 'Kicks', 'New Kicks', 'Otro'])
-  );
+  const effectiveFilter = view === 'time' ? timeRange : (filterMode === 'today' ? 'today' : 'all');
 
-  // raw data
-  const [units, setUnits] = useState<UnitRaw[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // ── Fetch ───────────────────────────────────────────────────────────────────
-
-  const fetchUnits = useCallback(async () => {
+  const fetchData = useCallback(async (filter: string) => {
+    if (!token) return;
     try {
       setLoading(true);
-      // Fetch a generous limit so we can process client-side
-      const res = await fetch(`${API_BASE}/units?limit=2000`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setUnits(data);
-      } else if (data?.data && Array.isArray(data.data)) {
-        setUnits(data.data);
-      } else if (data?.ok && Array.isArray(data.data)) {
-        setUnits(data.data);
-      }
-    } catch {/* silencioso */} finally {
-      setLoading(false);
-    }
+      const param = filter === 'all' ? '' : `?filter=${filter}`;
+      const [mr, tr] = await Promise.all([
+        fetch(`${API_BASE}/dashboard/defects-by-model${param}`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_BASE}/dashboard/defects-by-type${param}`,  { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const [md, td] = await Promise.all([mr.json(), tr.json()]);
+      if (md?.ok) setModelRows(md.data ?? []);
+      if (td?.ok) setTypeRows(td.data ?? []);
+    } catch { /* silencioso */ } finally { setLoading(false); }
   }, [token]);
 
-  useUnitEvents({ token, onEvent: fetchUnits });
-  useEffect(() => { if (token) fetchUnits(); }, [token, fetchUnits]);
+  useUnitEvents({ token, onEvent: () => fetchData(effectiveFilter) });
+  useEffect(() => { fetchData(effectiveFilter); }, [fetchData, effectiveFilter]);
 
-  // ── Derived data ────────────────────────────────────────────────────────────
+  const modelName = (code: string) => MODEL_MAP[code?.toUpperCase()] ?? `[${code}]`;
 
-  /** Filtra por filterMode global (hoy / todas) */
-  const baseUnits = useMemo(() => {
-    if (filterMode !== 'today') return units;
-    const todayStr = new Date().toISOString().slice(0, 10);
-    return units.filter(u => u.createdAt?.slice(0, 10) === todayStr);
-  }, [units, filterMode]);
+  const filteredModelRows = useMemo(
+    () => modelRows.filter(r => activeGrades.has(r.grade?.toUpperCase())),
+    [modelRows, activeGrades]
+  );
+  const filteredTypeRows = useMemo(
+    () => typeRows.filter(r => activeGrades.has(r.grade?.toUpperCase())),
+    [typeRows, activeGrades]
+  );
 
-  /** Filtra por rango de tiempo (usado en la vista "time") */
-  const timeFilteredUnits = useMemo(() => {
-    const now = new Date();
-    return baseUnits.filter(u => {
-      const d = new Date(u.createdAt);
-      if (timeRange === 'today') {
-        return d.toDateString() === now.toDateString();
-      } else if (timeRange === 'week') {
-        const cutoff = new Date(now);
-        cutoff.setDate(cutoff.getDate() - 7);
-        return d >= cutoff;
-      } else {
-        const cutoff = new Date(now);
-        cutoff.setDate(cutoff.getDate() - 30);
-        return d >= cutoff;
-      }
-    });
-  }, [baseUnits, timeRange]);
+  const gradesPieData = useMemo((): PieEntry[] => {
+    const c: Record<string, number> = { V1: 0, V2: 0, V3: 0 };
+    modelRows.forEach(r => { const g = r.grade?.toUpperCase(); if (g in c && activeGrades.has(g)) c[g] += r.count; });
+    return (['V1','V2','V3'] as const).filter(g => c[g] > 0 && activeGrades.has(g))
+      .map(g => ({ name: g, value: c[g], color: GRADE_COLORS[g] }));
+  }, [modelRows, activeGrades]);
 
-  /** Datos para la vista "defects" – conteo por grado filtrado */
-  const defectGradeData = useMemo(() => {
-    const counts: Record<string, number> = { V1: 0, V2: 0, V3: 0 };
-    baseUnits.forEach(u =>
-      u.defects?.forEach(d => {
-        const g = d.grade?.toUpperCase();
-        if (g && g in counts) counts[g]++;
-      })
-    );
-    return (['V1', 'V2', 'V3'] as const)
-      .filter(g => activeGrades.has(g))
-      .map(g => ({ grade: g, count: counts[g] }));
-  }, [baseUnits, activeGrades]);
-
-  /** Tipos de defecto más repetidos (top 8) */
-  const defectTypeData = useMemo((): DefectTypeRow[] => {
+  const modelsPieData = useMemo((): PieEntry[] => {
     const map = new Map<string, number>();
-    baseUnits.forEach(u =>
-      u.defects?.forEach(d => {
-        if (!activeGrades.has(d.grade?.toUpperCase() ?? '')) return;
-        const t = d.defectType ?? d.type ?? 'Sin tipo';
-        map.set(t, (map.get(t) ?? 0) + 1);
-      })
-    );
-    return Array.from(map.entries())
-      .map(([type, count]) => ({ type, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
-  }, [baseUnits, activeGrades]);
-
-  /** Datos para la vista "models" */
-  const modelData = useMemo((): ModelDefectRow[] => {
-    const map = new Map<string, ModelDefectRow>();
-    const allModels = [...Object.values(MODEL_MAP), 'Otro'];
-    allModels.forEach(m => map.set(m, { model: m, V1: 0, V2: 0, V3: 0, total: 0 }));
-
-    baseUnits.forEach(u => {
-      const model = getModelFromVin(u.vin);
-      if (!activeModels.has(model)) return;
-      const row = map.get(model)!;
-      u.defects?.forEach(d => {
-        const g = d.grade?.toUpperCase();
-        if (g === 'V1') { row.V1++; row.total++; }
-        else if (g === 'V2') { row.V2++; row.total++; }
-        else if (g === 'V3') { row.V3++; row.total++; }
-      });
+    filteredModelRows.forEach(r => {
+      const n = modelName(r.model_code);
+      map.set(n, (map.get(n) ?? 0) + r.count);
     });
-    return Array.from(map.values()).filter(r => r.total > 0);
-  }, [baseUnits, activeModels]);
+    return Array.from(map.entries()).sort((a,b)=>b[1]-a[1])
+      .map(([name, value], i) => ({ name, value, color: MODEL_COLORS[i % MODEL_COLORS.length] }));
+  }, [filteredModelRows]);
 
-  /** Datos para la vista "time" – modelos afectados en el rango */
-  const timeModelData = useMemo((): ModelDefectRow[] => {
-    const map = new Map<string, ModelDefectRow>();
-    const allModels = [...Object.values(MODEL_MAP), 'Otro'];
-    allModels.forEach(m => map.set(m, { model: m, V1: 0, V2: 0, V3: 0, total: 0 }));
+  const typesPieData = useMemo((): PieEntry[] => {
+    const map = new Map<string, number>();
+    filteredTypeRows.forEach(r => map.set(r.type ?? 'Sin tipo', (map.get(r.type ?? 'Sin tipo') ?? 0) + r.count));
+    return Array.from(map.entries()).sort((a,b)=>b[1]-a[1]).slice(0,8)
+      .map(([name, value], i) => ({ name, value, color: TYPE_COLORS[i % TYPE_COLORS.length] }));
+  }, [filteredTypeRows]);
 
-    timeFilteredUnits.forEach(u => {
-      const model = getModelFromVin(u.vin);
-      const row = map.get(model)!;
-      u.defects?.forEach(d => {
-        const g = d.grade?.toUpperCase();
-        if (g === 'V1') { row.V1++; row.total++; }
-        else if (g === 'V2') { row.V2++; row.total++; }
-        else if (g === 'V3') { row.V3++; row.total++; }
-      });
-    });
-    return Array.from(map.values()).filter(r => r.total > 0).sort((a, b) => b.total - a.total);
-  }, [timeFilteredUnits]);
+  const totalDefects = gradesPieData.reduce((s,d) => s + d.value, 0);
 
-  // ── Toggle helpers ──────────────────────────────────────────────────────────
-
-  const toggleGrade = (g: string) => {
+  const toggleGrade = (g: string) =>
     setActiveGrades(prev => {
       const next = new Set(prev);
       if (next.has(g)) { if (next.size > 1) next.delete(g); } else next.add(g);
       return next;
     });
-  };
 
-  const toggleModel = (m: string) => {
-    setActiveModels(prev => {
-      const next = new Set(prev);
-      if (next.has(m)) { if (next.size > 1) next.delete(m); } else next.add(m);
-      return next;
-    });
-  };
+  const GradeChips = () => (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-xs text-gray-400">Grado:</span>
+      {(['V1','V2','V3'] as const).map(g => (
+        <button key={g} onClick={() => toggleGrade(g)}
+          className={`px-2.5 py-0.5 text-xs font-bold rounded-full border transition-all ${
+            activeGrades.has(g)
+              ? g==='V1' ? 'bg-red-100 text-red-700 border-red-300'
+              : g==='V2' ? 'bg-amber-100 text-amber-700 border-amber-300'
+              :             'bg-blue-100 text-blue-700 border-blue-300'
+              : 'bg-gray-100 text-gray-300 border-gray-200 line-through opacity-50'
+          }`}>
+          {g}
+        </button>
+      ))}
+      {totalDefects > 0 && (
+        <span className="ml-auto text-xs text-gray-400">
+          Total: <span className="font-bold text-gray-700">{totalDefects}</span>
+        </span>
+      )}
+    </div>
+  );
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  const ModelCards = ({ data }: { data: PieEntry[] }) => {
+    const total = data.reduce((s,d) => s+d.value,0) || 1;
+    return data.length > 0 ? (
+      <div className="grid grid-cols-2 gap-2 mt-1">
+        {data.map(row => (
+          <div key={row.name} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-100 shadow-sm">
+            <div className="w-2 h-8 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-gray-800 truncate">{row.name}</p>
+              <p className="text-xs text-gray-400">{((row.value/total)*100).toFixed(1)}%</p>
+            </div>
+            <span className="text-base font-bold text-gray-900 shrink-0">{row.value}</span>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p className="text-center text-sm text-gray-400 py-4">Sin datos en este período</p>
+    );
+  };
 
   return (
-    <div className="flex flex-col gap-4 h-full">
+    <div className="flex flex-col gap-3 h-full">
 
-      {/* ── Tab selectors ── */}
+      {/* Tabs */}
       <div className="flex gap-2 flex-wrap">
         {([
           { key: 'defects', label: 'Por Defecto' },
-          { key: 'models', label: 'Por Modelo' },
-          { key: 'time', label: 'Por Tiempo' },
+          { key: 'models',  label: 'Por Modelo'  },
+          { key: 'time',    label: 'Por Tiempo'  },
         ] as { key: DefectView; label: string }[]).map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setView(tab.key)}
+          <button key={tab.key} onClick={() => setView(tab.key)}
             className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all ${
               view === tab.key
                 ? 'bg-red-600 text-white border-red-600 shadow-sm'
                 : 'bg-white text-gray-600 border-gray-300 hover:border-red-400 hover:text-red-600'
-            }`}
-          >
+            }`}>
             {tab.label}
           </button>
         ))}
       </div>
 
+      <GradeChips />
+
       {loading ? (
-        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-          Cargando datos...
-        </div>
+        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-8">Cargando...</div>
       ) : (
         <>
-          {/* ═══════════ VISTA: DEFECTOS ═══════════ */}
+          {/* ══ DEFECTOS ══ */}
           {view === 'defects' && (
             <div className="flex flex-col gap-3">
-              {/* Grade filter chips */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-gray-500">Grado:</span>
-                {(['V1', 'V2', 'V3'] as const).map(g => (
-                  <button
-                    key={g}
-                    onClick={() => toggleGrade(g)}
-                    className={`px-2.5 py-0.5 text-xs font-bold rounded-full border transition-all ${
-                      activeGrades.has(g)
-                        ? g === 'V1'
-                          ? 'bg-red-100 text-red-700 border-red-300'
-                          : g === 'V2'
-                          ? 'bg-amber-100 text-amber-700 border-amber-300'
-                          : 'bg-blue-100 text-blue-700 border-blue-300'
-                        : 'bg-gray-100 text-gray-400 border-gray-200 opacity-50'
-                    }`}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-
-              {/* Gráfica por grado */}
-              <GradeBarChart data={defectGradeData} />
-
-              {/* Top tipos de defecto */}
-              {defectTypeData.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-gray-500 mb-2">Defectos más frecuentes</p>
+              <DonutChart data={gradesPieData} title="Distribución por grado (V1 / V2 / V3)" />
+              {typesPieData.length > 0 && (
+                <>
+                  <p className="text-xs font-medium text-gray-500">Tipos de defecto más frecuentes</p>
+                  <DonutChart data={typesPieData} />
                   <div className="space-y-1.5">
-                    {defectTypeData.map((row, i) => {
-                      const maxCount = defectTypeData[0].count || 1;
-                      const pct = (row.count / maxCount) * 100;
+                    {typesPieData.map((row, i) => {
+                      const maxVal = typesPieData[0]?.value || 1;
                       return (
-                        <div key={row.type} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 w-4 text-right">{i + 1}</span>
-                          <span className="text-xs text-gray-700 w-28 truncate" title={row.type}>{row.type}</span>
-                          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full bg-red-400 transition-all duration-500"
-                              style={{ width: `${pct}%` }}
-                            />
+                        <div key={row.name} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 w-4 text-right">{i+1}</span>
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
+                          <span className="text-xs text-gray-700 flex-1 truncate" title={row.name}>{row.name}</span>
+                          <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all"
+                              style={{ width: `${(row.value/maxVal)*100}%`, backgroundColor: row.color }} />
                           </div>
-                          <span className="text-xs font-bold text-gray-700 w-6 text-right">{row.count}</span>
+                          <span className="text-xs font-bold text-gray-700 w-5 text-right">{row.value}</span>
                         </div>
                       );
                     })}
                   </div>
-                </div>
+                </>
               )}
-
-              {defectGradeData.every(d => d.count === 0) && (
-                <p className="text-center text-sm text-gray-400 py-4">Sin defectos registrados</p>
+              {gradesPieData.length === 0 && typesPieData.length === 0 && (
+                <p className="text-center text-sm text-gray-400 py-6">Sin defectos registrados</p>
               )}
             </div>
           )}
 
-          {/* ═══════════ VISTA: MODELOS ═══════════ */}
+          {/* ══ MODELOS ══ */}
           {view === 'models' && (
             <div className="flex flex-col gap-3">
-              {/* Model filter chips */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs text-gray-500">Modelo:</span>
-                {[...Object.values(MODEL_MAP), 'Otro'].map((m, i) => (
-                  <button
-                    key={m}
-                    onClick={() => toggleModel(m)}
-                    className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border transition-all ${
-                      activeModels.has(m)
-                        ? 'text-white border-transparent'
-                        : 'bg-gray-100 text-gray-400 border-gray-200 opacity-50'
-                    }`}
-                    style={activeModels.has(m) ? { backgroundColor: MODEL_COLORS[i % MODEL_COLORS.length] } : {}}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
-
-              {modelData.length > 0 ? (
-                <>
-                  {/* Gráfica */}
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={modelData} margin={{ top: 8, right: 10, left: -10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                      <XAxis dataKey="model" stroke="#6b7280" style={{ fontSize: '11px' }} />
-                      <YAxis stroke="#6b7280" style={{ fontSize: '11px' }} allowDecimals={false} />
-                      <Tooltip contentStyle={{ fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb' }} />
-                      <Bar dataKey="V1" name="V1 Grave" stackId="s" fill="#ef4444" />
-                      <Bar dataKey="V2" name="V2 Moderado" stackId="s" fill="#f59e0b" />
-                      <Bar dataKey="V3" name="V3 Leve" stackId="s" fill="#60a5fa" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-
-                  {/* Tabla resumen */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="text-gray-500 border-b border-gray-100">
-                          <th className="text-left py-1 pr-2">Modelo</th>
-                          <th className="text-center px-1"><span className="text-red-600 font-bold">V1</span></th>
-                          <th className="text-center px-1"><span className="text-amber-600 font-bold">V2</span></th>
-                          <th className="text-center px-1"><span className="text-blue-600 font-bold">V3</span></th>
-                          <th className="text-right pl-2 font-semibold">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {modelData.map(row => (
-                          <tr key={row.model} className="border-b border-gray-50 hover:bg-gray-50">
-                            <td className="py-1 pr-2 font-medium text-gray-800">{row.model}</td>
-                            <td className="text-center px-1 text-red-600">{row.V1}</td>
-                            <td className="text-center px-1 text-amber-600">{row.V2}</td>
-                            <td className="text-center px-1 text-blue-600">{row.V3}</td>
-                            <td className="text-right pl-2 font-bold text-gray-900">{row.total}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              ) : (
-                <p className="text-center text-sm text-gray-400 py-6">Sin unidades con defectos</p>
-              )}
+              <DonutChart data={modelsPieData} title="Defectos por modelo" />
+              <ModelCards data={modelsPieData} />
             </div>
           )}
 
-          {/* ═══════════ VISTA: POR TIEMPO ═══════════ */}
+          {/* ══ POR TIEMPO ══ */}
           {view === 'time' && (
             <div className="flex flex-col gap-3">
-              {/* Time-range selector */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 {([
-                  { key: 'today', label: 'Hoy' },
-                  { key: 'week', label: 'Últimos 7 días' },
-                  { key: 'month', label: 'Últimos 30 días' },
+                  { key: 'today', label: 'Hoy'     },
+                  { key: 'week',  label: '7 días'  },
+                  { key: 'month', label: '30 días' },
                 ] as { key: TimeRange; label: string }[]).map(opt => (
-                  <button
-                    key={opt.key}
-                    onClick={() => setTimeRange(opt.key)}
+                  <button key={opt.key} onClick={() => setTimeRange(opt.key)}
                     className={`px-3 py-1 text-xs rounded-full border transition-all ${
                       timeRange === opt.key
                         ? 'bg-indigo-600 text-white border-indigo-600'
                         : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400 hover:text-indigo-600'
-                    }`}
-                  >
+                    }`}>
                     {opt.label}
                   </button>
                 ))}
               </div>
-
-              {timeModelData.length > 0 ? (
-                <>
-                  <p className="text-xs text-gray-500">
-                    Modelos afectados –{' '}
-                    <span className="font-semibold text-gray-700">
-                      {timeFilteredUnits.length} unidades
-                    </span>{' '}
-                    en{' '}
-                    {timeRange === 'today' ? 'hoy' : timeRange === 'week' ? 'los últimos 7 días' : 'los últimos 30 días'}
-                  </p>
-
-                  {/* Gráfica apilada por modelo */}
-                  <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={timeModelData} margin={{ top: 8, right: 10, left: -10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                      <XAxis dataKey="model" stroke="#6b7280" style={{ fontSize: '11px' }} />
-                      <YAxis stroke="#6b7280" style={{ fontSize: '11px' }} allowDecimals={false} />
-                      <Tooltip contentStyle={{ fontSize: '12px', borderRadius: '6px', border: '1px solid #e5e7eb' }} />
-                      <Bar dataKey="V1" name="V1 Grave" stackId="s" fill="#ef4444" />
-                      <Bar dataKey="V2" name="V2 Moderado" stackId="s" fill="#f59e0b" />
-                      <Bar dataKey="V3" name="V3 Leve" stackId="s" fill="#60a5fa" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-
-                  {/* Cards por modelo */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {timeModelData.map((row, i) => (
-                      <div
-                        key={row.model}
-                        className="border border-gray-100 rounded-lg p-2 bg-white flex items-center gap-2 shadow-sm"
-                      >
-                        <div
-                          className="w-2 h-10 rounded-full shrink-0"
-                          style={{ backgroundColor: MODEL_COLORS[i % MODEL_COLORS.length] }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-800 truncate">{row.model}</p>
-                          <div className="flex gap-2 mt-0.5">
-                            <span className="text-xs text-red-600">{row.V1} V1</span>
-                            <span className="text-xs text-amber-600">{row.V2} V2</span>
-                            <span className="text-xs text-blue-600">{row.V3} V3</span>
-                          </div>
-                        </div>
-                        <span className="text-lg font-bold text-gray-900 shrink-0">{row.total}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <p className="text-center text-sm text-gray-400 py-6">Sin unidades en este período</p>
-              )}
+              <DonutChart data={modelsPieData} title="Modelos afectados en el período" />
+              <ModelCards data={modelsPieData} />
             </div>
           )}
         </>
