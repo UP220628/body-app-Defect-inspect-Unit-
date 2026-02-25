@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DefectCounters } from "@/components/dashboards/DefectCounters";
+import { ParetoChart } from "@/components/dashboards/ParetoChart";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth";
@@ -193,7 +194,20 @@ export default function Page (){
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
           {/* Defect Grade Counters - V1, V2, V3 */}
           <DefectCounters filterMode={filterMode} />
-          
+
+          {/* Gráfica de Pareto - Defectos V1, V2, V3 */}
+          <Card className="col-span-1 lg:col-span-12">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-700">Pareto de Defectos (V1, V2, V3)</div>
+                <span className="text-xs text-gray-400">Barras: cantidad · Línea morada: % acumulado</span>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <ParetoChart filterMode={filterMode} />
+            </CardBody>
+          </Card>
+
           {/* Line chart - Mensual */}
           <Card className="col-span-1 lg:col-span-7">
             <CardHeader>
