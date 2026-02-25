@@ -19,6 +19,7 @@ type Defect = {
   type: string;
   zone: string;
   grade: 'V1' | 'V2' | 'V3';
+  photoUrls?: string[];
 };
 
 type Unit = {
@@ -73,6 +74,18 @@ const ValidarUnidadPage = () => {
       });
       const json = await resp.json();
       if (json?.ok) {
+        // If sending to Body (SENT), delete evidence photos from blob storage
+        if (newStatus === 'SENT') {
+          const unit = units.find(u => u.id === unitId);
+          const allPhotoUrls = (unit?.defects ?? []).flatMap(d => d.photoUrls ?? []).filter(Boolean);
+          if (allPhotoUrls.length > 0) {
+            fetch('/api/blob/cleanup', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ urls: allPhotoUrls }),
+            }).catch(() => null);
+          }
+        }
         setUnits(prev => prev.filter(u => u.id !== unitId));
         setSelected(null);
         window.dispatchEvent(new CustomEvent('unitStatusChanged'));
@@ -290,13 +303,32 @@ const ValidarUnidadPage = () => {
                     {(selected.defects || []).map(d => (
                       <div
                         key={d.id}
-                        className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg"
+                        className="p-3 bg-white border border-gray-200 rounded-lg"
                       >
-                        <div>
-                          <p className="font-semibold text-sm">{d.type}</p>
-                          <p className="text-xs text-gray-500">{d.zone}</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <div>
+                            <p className="font-semibold text-sm">{d.type}</p>
+                            <p className="text-xs text-gray-500">{d.zone}</p>
+                          </div>
+                          <GradeBadge grade={d.grade}>{d.grade}</GradeBadge>
                         </div>
-                        <GradeBadge grade={d.grade}>{d.grade}</GradeBadge>
+                        {/* Evidence photos */}
+                        {(d.photoUrls ?? []).length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 mb-1 font-medium">Evidencia fotográfica:</p>
+                            <div className="flex gap-1.5 flex-wrap">
+                              {(d.photoUrls ?? []).map((url, i) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                                  <img
+                                    src={url}
+                                    alt={`Evidencia ${i + 1}`}
+                                    className="w-16 h-16 object-cover rounded border border-gray-200 hover:opacity-90 transition cursor-pointer"
+                                  />
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

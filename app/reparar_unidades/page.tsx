@@ -15,7 +15,7 @@ import { useUnitEvents } from '@/lib/useUnitEvents';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
-type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; resolved?: boolean };
+type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; resolved?: boolean; photoUrls?: string[] };
 type Unit = {
   id: number;
   vin: string;
@@ -618,12 +618,26 @@ export default function Page() {
             <h3 className="font-semibold mb-4">Defectos a Reparar</h3>
             <div className="space-y-3 p-4 bg-gray-50 rounded-lg max-h-64 overflow-y-auto">
               {(selectedUnit?.defects || []).map((defect) => (
-                <div key={defect.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg">
-                  <GradeBadge grade={defect.grade as 'V1' | 'V2' | 'V3'}>{defect.grade}</GradeBadge>
-                  <div className="flex-1">
-                    <p className="font-semibold text-sm">{defect.type}</p>
-                    <p className="text-xs text-gray-600">{defect.zone}</p>
+                <div key={defect.id} className="p-3 bg-white border border-gray-200 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <GradeBadge grade={defect.grade as 'V1' | 'V2' | 'V3'}>{defect.grade}</GradeBadge>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">{defect.type}</p>
+                      <p className="text-xs text-gray-600">{defect.zone}</p>
+                    </div>
                   </div>
+                  {(defect.photoUrls ?? []).length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-500 mb-1 font-medium">Evidencia fotográfica:</p>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {(defect.photoUrls ?? []).map((url, i) => (
+                          <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                            <img src={url} alt={`Foto ${i + 1}`} className="w-16 h-16 object-cover rounded border border-gray-200 hover:opacity-90 transition" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

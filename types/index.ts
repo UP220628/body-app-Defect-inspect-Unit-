@@ -50,5 +50,6 @@ export interface UnitDefect {
   grade: 'V1' | 'V2' | 'V3';
   description?: string;
   isResolved: boolean;
+  photoUrls?: string[];
 }
 

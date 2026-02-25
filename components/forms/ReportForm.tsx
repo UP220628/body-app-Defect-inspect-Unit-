@@ -17,6 +17,8 @@ interface Defect {
   type: DefectType;
   zone: Zone;
   grade: Grade;
+  photos: File[];
+  photoPreviewUrls: string[];
 }
 
 interface Provider {
@@ -52,7 +54,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   const [isLoadingProviders, setIsLoadingProviders] = useState(includeProvider);
   const [defects, setDefects] = useState<Defect[]>([]);
   const [isDefectModalOpen, setIsDefectModalOpen] = useState(false);
-  const [newDefect, setNewDefect] = useState<Partial<Defect>>({ type: 'Rayón', zone: 'Puerta delantera', grade: 'V2' });
+  const [newDefect, setNewDefect] = useState<Partial<Defect>>({ type: 'Rayón', zone: 'Puerta delantera', grade: 'V2', photos: [], photoPreviewUrls: [] });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
@@ -100,14 +102,51 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
 
   const handleAddDefect = () => {
     if (newDefect.type && newDefect.zone && newDefect.grade) {
-      setDefects([...defects, { id: Date.now(), ...newDefect } as Defect]);
-      setNewDefect({ type: 'Rayón', zone: 'Puerta delantera', grade: 'V2' });
+      setDefects([...defects, { id: Date.now(), photos: [], photoPreviewUrls: [], ...newDefect } as Defect]);
+      setNewDefect({ type: 'Rayón', zone: 'Puerta delantera', grade: 'V2', photos: [], photoPreviewUrls: [] });
       setIsDefectModalOpen(false);
     }
   };
 
   const handleRemoveDefect = (id: number) => {
+    const defect = defects.find(d => d.id === id);
+    // Revoke local preview URLs to free memory
+    defect?.photoPreviewUrls.forEach(url => URL.revokeObjectURL(url));
     setDefects(defects.filter(d => d.id !== id));
+  };
+
+  const handlePhotoSelect = (files: FileList | null) => {
+    if (!files) return;
+    const fileArr = Array.from(files).filter(f => f.type.startsWith('image/'));
+    const previewUrls = fileArr.map(f => URL.createObjectURL(f));
+    setNewDefect(prev => ({
+      ...prev,
+      photos: [...(prev.photos ?? []), ...fileArr],
+      photoPreviewUrls: [...(prev.photoPreviewUrls ?? []), ...previewUrls],
+    }));
+  };
+
+  const handleRemoveNewPhoto = (index: number) => {
+    setNewDefect(prev => {
+      const photos = [...(prev.photos ?? [])];
+      const previewUrls = [...(prev.photoPreviewUrls ?? [])];
+      URL.revokeObjectURL(previewUrls[index]);
+      photos.splice(index, 1);
+      previewUrls.splice(index, 1);
+      return { ...prev, photos, photoPreviewUrls: previewUrls };
+    });
+  };
+
+  const uploadPhotos = async (files: File[], token: string): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const file of files) {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/blob/upload', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.ok && data.url) urls.push(data.url);
+    }
+    return urls;
   };
 
   const handleScanComplete = (code: string) => {
@@ -186,8 +225,18 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       const unitData = await unitResponse.json();
       const unitId = unitData.data.id;
 
-      // Paso 2: Agregar cada defecto a la unidad
+      // Paso 2: Subir fotos y agregar cada defecto a la unidad
       for (const defect of defects) {
+        // Upload evidence photos for this defect
+        let photoUrls: string[] = [];
+        if (defect.photos && defect.photos.length > 0) {
+          try {
+            photoUrls = await uploadPhotos(defect.photos, token);
+          } catch {
+            // Continue even if photo upload fails
+          }
+        }
+
         const defectResponse = await fetch(`${API_BASE}/units/${unitId}/defects`, {
           method: 'POST',
           headers: {
@@ -200,6 +249,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
             grade: defect.grade,
             registeredById: user.id,
             description: `${defect.type} en ${defect.zone}`,
+            photoUrls,
           }),
         });
 
@@ -210,6 +260,8 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
 
       // Éxito: Limpiar formulario
       alert(`Unidad reportada exitosamente`);
+      // Revoke all preview object URLs
+      defects.forEach(d => d.photoPreviewUrls.forEach(url => URL.revokeObjectURL(url)));
       setVin('');
       setMercado('');
       setCarril('');
@@ -363,6 +415,14 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
                       <Badge variant={defect.grade === 'V1' ? 'danger' : 'warning'}>
                         {defect.grade}
                       </Badge>
+                      {defect.photos.length > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          </svg>
+                          {defect.photos.length} foto{defect.photos.length !== 1 ? 's' : ''}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600">Zona: {defect.zone}</p>
                   </div>
@@ -496,6 +556,67 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
               <li><strong>V1 (Grave):</strong> Reparación extensa, reemplazo de panel</li>
               <li><strong>V2 (Moderado):</strong> Reparación media, pintura/desabollado</li>
             </ul>
+          </div>
+
+          {/* Evidencia fotográfica */}
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-900">
+              Evidencia Fotográfica
+              <span className="text-gray-400 font-normal ml-1">(opcional)</span>
+            </label>
+            <div className="flex gap-2">
+              {/* Botón: abrir cámara directamente (móvil) */}
+              <label className="flex-1 flex items-center justify-center gap-2 px-3 py-3 border-2 border-dashed border-blue-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition text-sm text-blue-600 font-medium">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Tomar foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => handlePhotoSelect(e.target.files)}
+                />
+              </label>
+              {/* Botón: seleccionar desde galería */}
+              <label className="flex-1 flex items-center justify-center gap-2 px-3 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition text-sm text-gray-600">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Galería
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handlePhotoSelect(e.target.files)}
+                />
+              </label>
+            </div>
+
+            {/* Preview de fotos seleccionadas */}
+            {(newDefect.photoPreviewUrls ?? []).length > 0 && (
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {(newDefect.photoPreviewUrls ?? []).map((url, idx) => (
+                  <div key={idx} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Foto ${idx + 1}`}
+                      className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveNewPhoto(idx)}
+                      className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </Modal>

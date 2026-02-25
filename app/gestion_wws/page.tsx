@@ -26,7 +26,7 @@ const zones = [
 ];
 const grades = ['V1', 'V2', 'V3'] as const;
 
-type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; updatedById?: number; updatedAt?: string };
+type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; updatedById?: number; updatedAt?: string; photoUrls?: string[] };
 type Unit = {
   id: number;
   vin: string;
@@ -284,8 +284,8 @@ export default function Page() {
                       <TableCell align="right">
                         {activeTab === 'nivelacion' && (
                           <Button size="sm" onClick={() => openInspect(u)} className="bg-blue-600 hover:bg-blue-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2">
-                            <span className="hidden sm:inline">Asignar defectos</span>
-                            <span className="sm:hidden">Asignar</span>
+                            <span className="hidden sm:inline">Nivelar</span>
+                            <span className="sm:hidden">Nivelar</span>
                           </Button>
                         )}
                         {activeTab === 'entregar' && (
@@ -417,6 +417,33 @@ export default function Page() {
                   <p className="text-xs sm:text-sm text-yellow-800">Sin defectos asignados aún. Agrega al menos uno para continuar.</p>
                 </div>
               )}
+
+              {/* Fotos de evidencia adjuntas a los defectos */}
+              {(() => {
+                const allPhotos = (selected.defects || []).flatMap(d =>
+                  (d.photoUrls ?? []).map(url => ({ url, defect: d }))
+                );
+                if (allPhotos.length === 0) return null;
+                return (
+                  <div className="mt-3 sm:mt-4">
+                    <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-2">Fotos de evidencia ({allPhotos.length})</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {allPhotos.map(({ url, defect }, idx) => (
+                        <a key={idx} href={url} target="_blank" rel="noopener noreferrer" className="relative group block">
+                          <img
+                            src={url}
+                            alt={`Evidencia ${idx + 1} — ${defect.type}`}
+                            className="w-full h-20 object-cover rounded-lg border border-gray-200 group-hover:border-blue-400 transition"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[9px] px-1 py-0.5 rounded-b-lg truncate">
+                            {defect.grade} · {defect.type}
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="border-t pt-3 sm:pt-4">
