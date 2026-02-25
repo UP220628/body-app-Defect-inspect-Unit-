@@ -210,12 +210,12 @@ export default function Page (){
           </Card>
 
           {/* Line chart - Mensual */}
-          <Card className="col-span-1 lg:col-span-7">
+          <Card className="col-span-1 lg:col-span-7 flex flex-col">
             <CardHeader>
               <div className="text-sm font-medium text-gray-700">Tendencia Mensual (últimos 30 días)</div>
             </CardHeader>
-            <CardBody>
-              <ResponsiveContainer width="100%" height={280}>
+            <CardBody className="flex-1 min-h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
@@ -252,7 +252,7 @@ export default function Page (){
             <CardHeader>
               <div className="text-sm font-medium text-gray-700">Resumen {filterMode === 'today' ? 'Hoy' : 'Total'}</div>
             </CardHeader>
-            <CardBody>
+            <CardBody className="overflow-y-auto max-h-[580px]">
               <ResumenPanel filterMode={filterMode} />
             </CardBody>
           </Card>
