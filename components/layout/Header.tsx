@@ -27,6 +27,7 @@ export const Header = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileDropdownRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const { logout, user } = useAuth();
 
@@ -36,7 +37,10 @@ export const Header = () => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+      if (
+        mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node) &&
+        (!mobileDropdownRef.current || !mobileDropdownRef.current.contains(event.target as Node))
+      ) {
         setMobileOpen(false);
       }
     };
@@ -78,29 +82,31 @@ export const Header = () => {
             <NotificationBell />
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md hover:bg-red-100 transition-colors"
-            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-            aria-expanded={mobileOpen}
-            onClick={() => {
-              setMobileOpen(!mobileOpen);
-              setOpen(false);
-            }}
-          >
-            {mobileOpen ? (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            )}
-          </button>
+          {/* Mobile menu button — wrapped with ref so outside-click detection includes the toggle */}
+          <div ref={mobileMenuRef} className="md:hidden">
+            <button
+              className="inline-flex items-center justify-center w-10 h-10 rounded-md hover:bg-red-100 transition-colors"
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
+              onClick={() => {
+                setMobileOpen(!mobileOpen);
+                setOpen(false);
+              }}
+            >
+              {mobileOpen ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              )}
+            </button>
+          </div>
 
           {/* Desktop profile button */}
           <div className="relative hidden md:block" ref={profileRef}>
@@ -137,11 +143,10 @@ export const Header = () => {
             <Link
               key={route.href}
               href={route.href}
-              className={`shrink-0 px-3 py-2 text-sm font-medium rounded-none border-b-2 transition-colors whitespace-nowrap ${
-                isActive(route.href)
-                  ? 'border-red-500 text-red-600 font-semibold'
-                  : 'border-transparent text-gray-600 hover:text-red-500 hover:border-red-300'
-              }`}
+              className={`shrink-0 px-3 py-2 text-sm font-medium rounded-none border-b-2 transition-colors whitespace-nowrap ${isActive(route.href)
+                ? 'border-red-500 text-red-600 font-semibold'
+                : 'border-transparent text-gray-600 hover:text-red-500 hover:border-red-300'
+                }`}
             >
               {route.label}
             </Link>
@@ -151,7 +156,7 @@ export const Header = () => {
 
       {/* Mobile dropdown menu */}
       {mobileOpen && (
-        <div className="absolute right-4 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 md:hidden z-10" ref={mobileMenuRef}>
+        <div ref={mobileDropdownRef} className="absolute right-4 top-full mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 md:hidden z-10">
           {user && (
             <div className="px-4 py-3 border-b border-gray-100">
               <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">{userRole}</p>
@@ -164,11 +169,10 @@ export const Header = () => {
                 key={route.href}
                 href={route.href}
                 onClick={() => setMobileOpen(false)}
-                className={`block px-4 py-2.5 text-sm transition-colors ${
-                  isActive(route.href)
-                    ? 'font-semibold bg-red-50 text-red-600'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
+                className={`block px-4 py-2.5 text-sm transition-colors ${isActive(route.href)
+                  ? 'font-semibold bg-red-50 text-red-600'
+                  : 'text-gray-700 hover:bg-gray-50'
+                  }`}
               >
                 {route.label}
               </Link>
