@@ -11,8 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { API_BASE } from '@/lib/api';
 
 const MODEL_MAP: Record<string, string> = {
   N8: 'Versa',

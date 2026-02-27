@@ -18,8 +18,7 @@ import { GradeBadge } from "@/components/units/GradeBadge";
 import { StatusBadge } from "@/components/units/StatusBadge";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { useAuth } from "@/lib/auth";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
+import { API_BASE } from "@/lib/api";
 
 // Tipos locales para manejar unidades
 

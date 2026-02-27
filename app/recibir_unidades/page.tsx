@@ -11,8 +11,7 @@ import { GradeBadge } from '@/components/units/GradeBadge';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { API_BASE } from '@/lib/api';
 
 type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3' };
 type Unit = {

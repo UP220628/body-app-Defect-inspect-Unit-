@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { ROLES } from '@/lib/permissions';
+import { API_BASE } from '@/lib/api';
 
 type Provider = { id: number; name: string; code?: string };
 type User = { id: number; email: string; name: string; roleId: number; roleName?: string; providerId?: number | null; providerName?: string; plant?: string | null };
@@ -40,7 +41,6 @@ const PlantBadge = ({ plant }: { plant?: string | null }) => {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const API_BASE = (process.env.NEXT_PUBLIC_API_URL as string) || 'http://localhost:3001';
   const { token, user } = useAuth();
   const isAdmin = user?.roleId === ROLES.ADMIN;
 

@@ -10,10 +10,11 @@ import { Modal } from '@/components/ui/Modal';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
+import { API_BASE } from '@/lib/api';
+import { ROLES } from '@/lib/permissions';
 
 
 export default function Page (){
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
   const { token, user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [vin, setVin] = useState('');
@@ -32,7 +33,7 @@ export default function Page (){
   // Plant tabs
   const userPlant = user?.plant || 'A1';
   const otherPlant = userPlant === 'A1' ? 'A2' : 'A1';
-  const isAdmin = user?.roleId === 5;
+  const isAdmin = user?.roleId === ROLES.ADMIN;
   const [plantTab, setPlantTab] = useState<string>(userPlant);
 
   // Defects modal
