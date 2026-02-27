@@ -55,8 +55,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
       {/* Móvil: modal centrado con overlay */}
       {isMobile && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-white shadow-2xl border border-gray-200 rounded-xl max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+          <div className="w-full max-w-sm bg-white shadow-2xl border border-gray-200 rounded-xl max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
             {title && (
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
                 <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
