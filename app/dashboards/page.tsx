@@ -5,13 +5,14 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DefectCounters } from "@/components/dashboards/DefectCounters";
+import { ParetoChart } from "@/components/dashboards/ParetoChart";
+import { ResumenPanel } from "@/components/dashboards/ResumenPanel";
 import ProtectedRoute from "@/components/layout/ProtectedRoute";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/auth";
 import { useUnitEvents } from "@/lib/useUnitEvents";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { API_BASE } from '@/lib/api';
 
 export default function Page (){
   const { token } = useAuth();
@@ -193,14 +194,27 @@ export default function Page (){
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
           {/* Defect Grade Counters - V1, V2, V3 */}
           <DefectCounters filterMode={filterMode} />
-          
+
+          {/* Gráfica de Pareto - Defectos V1, V2, V3 */}
+          <Card className="col-span-1 lg:col-span-12">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-700">Pareto de Defectos (V1, V2, V3)</div>
+                <span className="text-xs text-gray-400">Barras: cantidad · Línea morada: % acumulado</span>
+              </div>
+            </CardHeader>
+            <CardBody>
+              <ParetoChart filterMode={filterMode} />
+            </CardBody>
+          </Card>
+
           {/* Line chart - Mensual */}
-          <Card className="col-span-1 lg:col-span-7">
+          <Card className="col-span-1 lg:col-span-7 flex flex-col">
             <CardHeader>
               <div className="text-sm font-medium text-gray-700">Tendencia Mensual (últimos 30 días)</div>
             </CardHeader>
-            <CardBody>
-              <ResponsiveContainer width="100%" height={280}>
+            <CardBody className="flex-1 min-h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyChartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
@@ -232,35 +246,13 @@ export default function Page (){
             </CardBody>
           </Card>
 
-          {/* Resumen */}
+          {/* Resumen interactivo */}
           <Card className="col-span-1 lg:col-span-5">
             <CardHeader>
               <div className="text-sm font-medium text-gray-700">Resumen {filterMode === 'today' ? 'Hoy' : 'Total'}</div>
             </CardHeader>
-            <CardBody>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Unidades totales</span>
-                  <span className="text-2xl font-bold text-gray-900">
-                    {monthlyData.reduce((sum, d) => sum + d.count, 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                  <span className="text-sm text-gray-600">Promedio diario</span>
-                  <span className="text-2xl font-bold text-gray-900">
-                    {monthlyData.length > 0 
-                      ? Math.round(monthlyData.reduce((sum, d) => sum + d.count, 0) / monthlyData.length)
-                      : 0
-                    }
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                  <span className="text-sm text-gray-600">Últimas 24h</span>
-                  <span className="text-2xl font-bold text-blue-600">
-                    {monthlyData.length > 0 ? monthlyData[monthlyData.length - 1].count : 0}
-                  </span>
-                </div>
-              </div>
+            <CardBody className="overflow-y-auto max-h-[580px]">
+              <ResumenPanel filterMode={filterMode} />
             </CardBody>
           </Card>
 

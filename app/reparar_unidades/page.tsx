@@ -12,8 +12,7 @@ import { StatusBadge } from '@/components/units/StatusBadge';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { API_BASE } from '@/lib/api';
 
 type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; resolved?: boolean; photoUrls?: string[] };
 type Unit = {
@@ -143,7 +142,7 @@ export default function Page() {
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ 
                 unitIds, 
-                assignedById: 1 
+                assignedById: user.id 
               })
             });
             
@@ -216,7 +215,7 @@ export default function Page() {
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify({ 
                 unitIds, 
-                assignedById: 1 
+                assignedById: user.id 
               })
             });
             

@@ -11,8 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { API_BASE } from '@/lib/api';
 
 type Defect = {
   id: number;

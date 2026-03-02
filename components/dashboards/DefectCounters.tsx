@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Card, CardBody } from '@/components/ui/Card';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
+import { API_BASE } from '@/lib/api';
 
 interface DefectStats {
   v1: number;
@@ -14,8 +15,6 @@ interface DefectStats {
 interface DefectCountersProps {
   filterMode: 'today' | 'all';
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 export const DefectCounters = ({ filterMode }: DefectCountersProps) => {
   const { token } = useAuth();

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { BarcodeScanner } from '@/components/ui/BarcodeScanner';
 import { useAuth } from '@/lib/auth';
+import { API_BASE } from '@/lib/api';
 
 type DefectType = 'Rayón' | 'Abolladura' | 'Rotura' | 'Golpe' | 'Óxido' | 'Otro';
 type Zone = 'Puerta delantera' | 'Puerta trasera' | 'Cofre' | 'Cajuela' | 'Parachoques' | 'Espejo' | 'Techo' | 'Fascia' | 'Panel lateral' | 'Otro';
@@ -40,8 +41,6 @@ const gradeColors: Record<Grade, string> = {
   V1: 'bg-red-100 text-red-800',
   V2: 'bg-yellow-100 text-yellow-800',
 };
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
 
 export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   const { user } = useAuth();

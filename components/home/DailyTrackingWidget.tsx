@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { API_BASE } from '@/lib/api';
+import { ROLES } from '@/lib/permissions';
 
 type Unit = {
   id: number;
@@ -138,7 +138,7 @@ export const DailyTrackingWidget = () => {
     }
   };
 
-  const isSCM = user?.roleId === 2;
+  const isSCM = user?.roleId === ROLES.SCM;
 
   return (
     <>

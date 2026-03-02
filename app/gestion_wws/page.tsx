@@ -13,8 +13,7 @@ import { ReportForm } from '@/components/forms/ReportForm';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001';
+import { API_BASE } from '@/lib/api';
 
 const defectTypes = [
   'Rayón', 'Abolladura', 'Despintado', 'Mancha', 'Grieta', 'Deformación', 'Corrosión', 'Otro'
@@ -95,7 +94,7 @@ export default function Page() {
       const resp = await fetch(`${API_BASE}/units/${selected.id}/defects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ defectType: newDefect.type, zone: newDefect.zone, grade: newDefect.grade, registeredById: 1 })
+        body: JSON.stringify({ defectType: newDefect.type, zone: newDefect.zone, grade: newDefect.grade, registeredById: user?.id })
       });
       const json = await resp.json();
       if (json?.ok) {

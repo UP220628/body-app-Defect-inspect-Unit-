@@ -1,8 +1,9 @@
-'use client';
+﻿'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Plant } from '@/types';
+import { API_BASE } from '@/lib/api';
 
 interface User {
   id: number;
@@ -24,7 +25,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const TOKEN_REFRESH_INTERVAL = 14 * 60 * 1000; // 14 minutos (antes de que expire el token de 15 min)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const refreshAccessToken = async (refreshToken: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/refresh`, {
+      const response = await fetch(`${API_BASE}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Verificar si hay un token guardado al cargar la aplicación
+  // Verificar si hay un token guardado al cargar la aplicaciÃ³n
   useEffect(() => {
     const storedToken = localStorage.getItem('authToken');
     const storedRefreshToken = localStorage.getItem('refreshToken');
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const verifyToken = async (token: string, refreshToken: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/verify`, {
+      const response = await fetch(`${API_BASE}/auth/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (data.ok && data.valid) {
           setToken(token);
-          // Obtener información completa del usuario
+          // Obtener informaciÃ³n completa del usuario
           await fetchUserData(token);
           // Configurar auto-refresh
           setupAutoRefresh(refreshToken);
@@ -142,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserData = async (token: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const response = await fetch(`${API_BASE}/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -161,7 +161,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -171,13 +171,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Error al iniciar sesión');
+        throw new Error(error.error || 'Error al iniciar sesiÃ³n');
       }
 
       const result = await response.json();
       
       if (!result.ok || !result.data) {
-        throw new Error('Respuesta inválida del servidor');
+        throw new Error('Respuesta invÃ¡lida del servidor');
       }
 
       const { user: userData, token: accessToken, refreshToken } = result.data;
@@ -189,7 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('authToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       
-      // Guardar token en cookies para el middleware (solo access token, короткий)
+      // Guardar token en cookies para el middleware (solo access token, ÐºÐ¾Ñ€Ð¾Ñ‚ÐºÐ¸Ð¹)
       document.cookie = `authToken=${accessToken}; path=/; max-age=${15 * 60}; SameSite=Strict`;
       
       // Configurar auto-refresh
@@ -207,7 +207,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Notificar al servidor para revocar tokens
     if (token) {
       try {
-        await fetch(`${API_URL}/auth/logout`, {
+        await fetch(`${API_BASE}/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
