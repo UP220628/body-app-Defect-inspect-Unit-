@@ -234,7 +234,9 @@ export default function Page() {
                 Se notificará al proveedor seleccionado para el tracking de la unidad.
               </p>
             </div>
-            <ReportForm includeProvider={true} />
+            <div className="flex justify-center">
+              <ReportForm includeProvider={true} />
+            </div>
           </div>
         ) : (
           <Card>
