@@ -8,7 +8,7 @@ Aplicación web diseñada para dar visibilidad en la parte de planchas para madr
 
 ## Cómo correr
 
-```bash
+```bash (Terminal)
 npm install
 npm run dev       # desarrollo en http://localhost:3000
 npm run build     # build de producción
