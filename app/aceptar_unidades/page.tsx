@@ -31,6 +31,8 @@ export default function Page() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [rejectionNote, setRejectionNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
@@ -87,6 +89,43 @@ export default function Page() {
       }
     } catch (err) {
       // Error aceptando unidad
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenReject = () => {
+    setRejectionNote('');
+    setIsRejectModalOpen(true);
+  };
+
+  const handleRejectUnit = async () => {
+    if (!selectedUnit || !user || !rejectionNote.trim()) return;
+    setLoading(true);
+    try {
+      const resp = await fetch(`${API_BASE}/units/${selectedUnit.id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          newStatus: 'REJECTED', 
+          changedById: user.id,
+          note: rejectionNote.trim()
+        })
+      });
+      const json = await resp.json();
+      if (json?.ok) {
+        setUnits(prev => prev.filter(u => u.id !== selectedUnit.id));
+        setIsRejectModalOpen(false);
+        setIsModalOpen(false);
+        setSelectedUnit(null);
+        setRejectionNote('');
+        window.dispatchEvent(new CustomEvent('unitStatusChanged'));
+      }
+    } catch (err) {
+      // Error rechazando unidad
     } finally {
       setLoading(false);
     }
@@ -182,8 +221,8 @@ export default function Page() {
                             onClick={() => handleViewUnit(unit)}
                             className="bg-emerald-600 hover:bg-emerald-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2"
                           >
-                            <span className="hidden sm:inline">Ver y Aceptar</span>
-                            <span className="sm:hidden">Aceptar</span>
+                            <span className="hidden sm:inline">Ver Unidad</span>
+                            <span className="sm:hidden">Ver</span>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -205,6 +244,14 @@ export default function Page() {
             <div className="flex gap-2">
               <Button onClick={() => setIsModalOpen(false)} variant="secondary" className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">
                 Cancelar
+              </Button>
+              <Button
+                onClick={handleOpenReject}
+                disabled={loading}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium shadow-sm text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2"
+              >
+                <span className="hidden sm:inline">Rechazar Unidad</span>
+                <span className="sm:hidden">Rechazar</span>
               </Button>
               <Button
                 onClick={handleAcceptUnit}
@@ -265,6 +312,51 @@ export default function Page() {
               </div>
             </div>
           )}
+        </Modal>
+
+        {/* Modal de Rechazo */}
+        <Modal
+          isOpen={isRejectModalOpen}
+          onClose={() => setIsRejectModalOpen(false)}
+          title={`Rechazar Unidad: ${selectedUnit?.vin}`}
+          size="md"
+          footer={
+            <div className="flex gap-2">
+              <Button onClick={() => setIsRejectModalOpen(false)} variant="secondary" className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleRejectUnit}
+                disabled={loading || !rejectionNote.trim()}
+                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium shadow-sm text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2"
+              >
+                Confirmar Rechazo
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+              <p className="text-sm text-red-800 font-medium mb-1">
+                Atención: Esta unidad volverá al proceso de reparación.
+              </p>
+              <p className="text-xs text-red-700">
+                Los defectos serán reabiertos y Body deberá reparar nuevamente antes de que la unidad pueda ser liberada.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Motivo del rechazo <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={rejectionNote}
+                onChange={(e) => setRejectionNote(e.target.value)}
+                rows={3}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                placeholder="Describe el motivo por el cual rechazas la reparación de esta unidad..."
+              />
+            </div>
+          </div>
         </Modal>
       </div>
     </ProtectedRoute>

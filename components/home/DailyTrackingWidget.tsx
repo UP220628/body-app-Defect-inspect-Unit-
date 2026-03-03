@@ -49,6 +49,7 @@ export const DailyTrackingWidget = () => {
   const [isDecisionModal, setIsDecisionModal] = useState(false);
   const [decision, setDecision] = useState('');
   const [decisionNote, setDecisionNote] = useState('');
+  const [archiving, setArchiving] = useState(false);
 
   const formatMexicoDateTime = (value?: string) => {
     if (!value) return '';
@@ -97,7 +98,7 @@ export const DailyTrackingWidget = () => {
     loadUnits();
   }, [token, loadUnits]);
 
-  const unavailableUnits = units.filter(u => !u.isAvailableToday || u.statusName === 'UNAVAILABLE');
+  const unavailableUnits = units.filter(u => (!u.isAvailableToday || u.statusName === 'UNAVAILABLE') && u.statusName !== 'ARCHIVED');
   const availableUnits = units.filter(u => u.isAvailableToday && u.statusName !== 'UNAVAILABLE');
   const needsDecision = unavailableUnits.filter(u => !u.scmDecision);
 
@@ -135,6 +136,29 @@ export const DailyTrackingWidget = () => {
       }
     } catch (error) {
       alert('Error al guardar decisión');
+    }
+  };
+
+  const handleArchiveUnit = async (unit: Unit) => {
+    if (!user || !confirm(`¿Archivar la unidad ${unit.vin}? Esta acción es irreversible.`)) return;
+    setArchiving(true);
+    try {
+      const response = await fetch(`${API_BASE}/units/${unit.id}/archive`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ archivedById: user.id })
+      });
+      if (response.ok) {
+        await loadUnits();
+        window.dispatchEvent(new CustomEvent('unitStatusChanged'));
+      }
+    } catch (error) {
+      alert('Error al archivar unidad');
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -212,7 +236,7 @@ export const DailyTrackingWidget = () => {
 
         {/* Unidades no disponibles */}
         {unavailableUnits.length > 0 && (
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-3">
             <CardHeader>
               <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <span className="inline-block w-3 h-3 bg-red-500 rounded-full"></span>
@@ -245,6 +269,17 @@ export const DailyTrackingWidget = () => {
                           <p className="text-xs text-gray-700 mt-1">{unit.scmDecisionNote}</p>
                         )}
                         <p className="text-xs text-gray-500 mt-1">Decidido por: {unit.scmDecidedBy}</p>
+                        {isSCM && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleArchiveUnit(unit)}
+                            disabled={archiving}
+                            className="w-full mt-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          >
+                            Archivar Unidad
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <div className="mt-2">
@@ -359,6 +394,16 @@ export const DailyTrackingWidget = () => {
           isOpen={isDecisionModal}
           onClose={() => setIsDecisionModal(false)}
           title="Decisión SCM para Unidad No Disponible"
+          footer={
+            <div className="flex gap-2 justify-end w-full">
+              <Button variant="secondary" onClick={() => setIsDecisionModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSubmitDecision} disabled={!decision}>
+                Guardar Decisión
+              </Button>
+            </div>
+          }
         >
           <div className="space-y-4">
             <div>
@@ -398,15 +443,6 @@ export const DailyTrackingWidget = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Detalles adicionales sobre la decisión..."
               />
-            </div>
-
-            <div className="flex gap-2 justify-end">
-              <Button variant="secondary" onClick={() => setIsDecisionModal(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSubmitDecision} disabled={!decision}>
-                Guardar Decisión
-              </Button>
             </div>
           </div>
         </Modal>

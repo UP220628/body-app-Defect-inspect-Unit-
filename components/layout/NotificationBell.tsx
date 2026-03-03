@@ -12,7 +12,7 @@ type NotificationItem = {
   id: number;
   userId: number;
   unitId: number;
-  type: 'UNIT_REPORTED' | 'UNIT_RELEASED' | 'STATUS_CHANGED' | 'DEFECT_ADDED' | 'REPAIR_ESTIMATED' | 'VQA_PENDING';
+  type: 'UNIT_REPORTED' | 'UNIT_RELEASED' | 'UNIT_REJECTED' | 'UNIT_ARCHIVED' | 'STATUS_CHANGED' | 'DEFECT_ADDED' | 'REPAIR_ESTIMATED' | 'VQA_PENDING';
   message: string | null;
   isRead: boolean;
   createdAt: Date;
@@ -21,6 +21,8 @@ type NotificationItem = {
 const notificationMeta: Record<NotificationItem['type'], { title: string; tone: 'high' | 'medium' | 'low' }> = {
   UNIT_REPORTED: { title: 'Unidad reportada por carrier', tone: 'high' },
   UNIT_RELEASED: { title: 'Unidad liberada en BODY', tone: 'medium' },
+  UNIT_REJECTED: { title: 'Unidad rechazada por Carrier', tone: 'high' },
+  UNIT_ARCHIVED: { title: 'Unidad archivada', tone: 'low' },
   STATUS_CHANGED: { title: 'Cambio de estado', tone: 'low' },
   DEFECT_ADDED: { title: 'Defecto agregado', tone: 'low' },
   REPAIR_ESTIMATED: { title: 'Reparacion estimada', tone: 'low' },

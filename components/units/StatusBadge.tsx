@@ -1,7 +1,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/Badge';
 
-export type UnitStatus = 'REPORTED' | 'SENT' | 'DELIVERED' | 'RECEIVED' | 'IN_REPAIR' | 'REPAIRED' | 'RELEASED' | 'WWS_RELEASED' | 'ACCEPTED' | 'UNAVAILABLE' | string;
+export type UnitStatus = 'REPORTED' | 'SENT' | 'DELIVERED' | 'RECEIVED' | 'IN_REPAIR' | 'RELEASED' | 'WWS_RELEASED' | 'ACCEPTED' | 'UNAVAILABLE' | 'VQA_PENDING' | 'REJECTED' | 'ARCHIVED' | string;
 
 const statusToVariant: Record<string, 'default' | 'success' | 'danger' | 'warning' | 'info'> = {
   REPORTED: 'default',
@@ -9,11 +9,13 @@ const statusToVariant: Record<string, 'default' | 'success' | 'danger' | 'warnin
   DELIVERED: 'warning',
   RECEIVED: 'warning',
   IN_REPAIR: 'info',
-  REPAIRED: 'success',
   RELEASED: 'success',
   WWS_RELEASED: 'success',
   ACCEPTED: 'success',
   UNAVAILABLE: 'danger',
+  VQA_PENDING: 'warning',
+  REJECTED: 'danger',
+  ARCHIVED: 'default',
 };
 
 const statusToLabel: Record<string, string> = {
@@ -22,11 +24,13 @@ const statusToLabel: Record<string, string> = {
   DELIVERED: 'Entregada a Body',
   RECEIVED: 'Recibida',
   IN_REPAIR: 'En Reparación',
-  REPAIRED: 'Reparada',
   RELEASED: 'Liberada Body',
   WWS_RELEASED: 'Liberada WWS',
   ACCEPTED: 'Aceptada',
   UNAVAILABLE: 'No disponible',
+  VQA_PENDING: 'Validación VQA',
+  REJECTED: 'Rechazada',
+  ARCHIVED: 'Archivada',
 };
 
 interface StatusBadgeProps {

@@ -162,6 +162,8 @@ export default function Page (){
     'RELEASED': { label: 'Liberadas', color: 'bg-green-100 text-green-700'},
     'WWS_RELEASED': { label: 'WWS Liberadas', color: 'bg-emerald-100 text-emerald-700'},
     'UNAVAILABLE': { label: 'No Disponibles', color: 'bg-red-100 text-red-700' },
+    'REJECTED': { label: 'Rechazadas', color: 'bg-red-100 text-red-700' },
+    'ARCHIVED': { label: 'Archivadas', color: 'bg-gray-200 text-gray-600' },
   };
 
   return(

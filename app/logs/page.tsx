@@ -363,6 +363,7 @@ export default function Page (){
                     <TableHeadCell className="px-3 py-2 text-[11px]">Liberada Body</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Liberada WWS</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Aceptada</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Rechazada</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Registrado por</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Notas</TableHeadCell>
                   </TableRow>
@@ -388,6 +389,7 @@ export default function Page (){
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.RELEASED)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.WWS_RELEASED)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.ACCEPTED)}</TableCell>
+                      <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.REJECTED)}</TableCell>
                       <TableCell className="px-3 py-2 text-xs">{unit.registeredByName}</TableCell>
                       <TableCell className="px-3 py-2 text-xs">
                         {(() => {

@@ -51,13 +51,13 @@ export default function Page() {
 
   // Unidades por pestaña
   const reportedUnits = useMemo(() => allUnits.filter(u => u.statusName === 'REPORTED'), [allUnits]);
-  const sentUnits = useMemo(() => allUnits.filter(u => u.statusName === 'SENT'), [allUnits]);
+  const sentUnits = useMemo(() => allUnits.filter(u => u.statusName === 'SENT' || u.statusName === 'REJECTED'), [allUnits]);
   const releasedUnits = useMemo(() => allUnits.filter(u => u.statusName === 'RELEASED'), [allUnits]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const statuses = ['REPORTED', 'SENT', 'RELEASED'];
+      const statuses = ['REPORTED', 'SENT', 'RELEASED', 'REJECTED'];
       const results: Unit[] = [];
       for (const st of statuses) {
         const r = await fetch(`${API_BASE}/units?status=${st}`, {
