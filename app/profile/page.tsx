@@ -10,7 +10,7 @@ import { API_BASE } from '@/lib/api';
 type Provider = { id: number; name: string; code?: string };
 type User = { id: number; email: string; name: string; roleId: number; roleName?: string; providerId?: number | null; providerName?: string; plant?: string | null };
 
-const ROLE_OPTIONS = ['WWS', 'SCM', 'BODY', 'CARRIER', 'VQA', 'ADMIN'];
+const ROLE_OPTIONS = ['WWS', 'SCM', 'BODY', 'CARRIER', 'WTY', 'SCM_QUALITY', 'ADMIN'];
 const PLANT_OPTIONS = ['A1', 'A2'] as const;
 
 const RoleBadge = ({ role }: { role?: string }) => {
@@ -19,7 +19,8 @@ const RoleBadge = ({ role }: { role?: string }) => {
     SCM: 'bg-purple-100 text-purple-700',
     BODY: 'bg-orange-100 text-orange-700',
     CARRIER: 'bg-green-100 text-green-700',
-    VQA: 'bg-pink-100 text-pink-700',
+    WTY: 'bg-pink-100 text-pink-700',
+    SCM_QUALITY: 'bg-pink-200 text-pink-800',
     ADMIN: 'bg-red-100 text-red-700',
   };
   return (

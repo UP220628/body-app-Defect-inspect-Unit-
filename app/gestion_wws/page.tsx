@@ -46,18 +46,18 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('nivelacion');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [vqaUnit, setVqaUnit] = useState<Unit | null>(null);
-  const [vqaComment, setVqaComment] = useState('');
+  const [wtyUnit, setWtyUnit] = useState<Unit | null>(null);
+  const [wtyComment, setWtyComment] = useState('');
 
   // Unidades por pestaña
   const reportedUnits = useMemo(() => allUnits.filter(u => u.statusName === 'REPORTED'), [allUnits]);
   const sentUnits = useMemo(() => allUnits.filter(u => u.statusName === 'SENT' || u.statusName === 'REJECTED'), [allUnits]);
-  const releasedUnits = useMemo(() => allUnits.filter(u => u.statusName === 'RELEASED'), [allUnits]);
+  const releasedUnits = useMemo(() => allUnits.filter(u => u.statusName === 'RELEASED' || u.statusName === 'WTY_RELEASED'), [allUnits]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const statuses = ['REPORTED', 'SENT', 'RELEASED', 'REJECTED'];
+      const statuses = ['REPORTED', 'SENT', 'RELEASED', 'WTY_RELEASED', 'REJECTED'];
       const results: Unit[] = [];
       for (const st of statuses) {
         const r = await fetch(`${API_BASE}/units?status=${st}`, {
@@ -348,7 +348,7 @@ export default function Page() {
                       <span className="sm:hidden">Body</span>
                     </Button>
                   )}
-                  {/* Solo V2/V3 (sin V1): WWS decide si Body o pide validación VQA */}
+                  {/* Solo V2/V3 (sin V1): WWS decide si Body o pide validación WTY */}
                   {!(selected!.defects||[]).some(d => d.grade === 'V1') && (
                     <>
                       <Button
@@ -361,13 +361,13 @@ export default function Page() {
                         <span className="sm:hidden">Body</span>
                       </Button>
                       <Button
-                        onClick={() => { setSelected(null); setVqaUnit(selected!); setVqaComment(''); }}
+                        onClick={() => { setSelected(null); setWtyUnit(selected!); setWtyComment(''); }}
                         size="sm"
                         className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
                         disabled={loading}
                       >
-                        <span className="hidden sm:inline">Solicitar VQA</span>
-                        <span className="sm:hidden">VQA</span>
+                        <span className="hidden sm:inline">Solicitar WTY</span>
+                        <span className="sm:hidden">WTY</span>
                       </Button>
                     </>
                   )}
@@ -465,7 +465,7 @@ export default function Page() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2/V3=Leve/Moderado (Body o solicitar validación VQA para liberar directo)</p>
+                  <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2/V3=Leve/Moderado (Body o solicitar validación WTY para liberar directo)</p>
                 </div>
                 <Button onClick={handleAddDefect} className="w-full px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md transition-all rounded-lg">
                   +{' '}
@@ -524,16 +524,16 @@ export default function Page() {
           </div>
         )}
       </Modal>
-      {/* Modal - VQA: comentario y confirmación de solicitud */}
+      {/* Modal - WTY: comentario y confirmación de solicitud */}
       <Modal
-        isOpen={!!vqaUnit}
-        onClose={() => { setVqaUnit(null); setVqaComment(''); }}
-        title={`Solicitar validación VQA: ${vqaUnit?.vin ?? ''}`}
+        isOpen={!!wtyUnit}
+        onClose={() => { setWtyUnit(null); setWtyComment(''); }}
+        title={`Solicitar validación WTY: ${wtyUnit?.vin ?? ''}`}
         size="md"
         footer={
           <div className="flex gap-3 justify-between items-center">
             <Button
-              onClick={() => { setVqaUnit(null); setVqaComment(''); }}
+              onClick={() => { setWtyUnit(null); setWtyComment(''); }}
               variant="secondary"
               size="sm"
             >
@@ -541,41 +541,41 @@ export default function Page() {
             </Button>
             <Button
               onClick={async () => {
-                if (!vqaUnit) return;
-                await updateStatus(vqaUnit.id, 'VQA_PENDING', { vqaComment: vqaComment.trim() || null });
-                setVqaUnit(null);
-                setVqaComment('');
+                if (!wtyUnit) return;
+                await updateStatus(wtyUnit.id, 'WTY_PENDING', { wtyComment: wtyComment.trim() || null });
+                setWtyUnit(null);
+                setWtyComment('');
               }}
               size="sm"
               className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold text-xs px-4 py-2"
               disabled={loading}
             >
-              Enviar a VQA
+              Enviar a WTY
             </Button>
           </div>
         }
       >
-        {vqaUnit && (
+        {wtyUnit && (
           <div className="space-y-4">
             <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 rounded-lg text-sm">
               <div>
                 <p className="text-xs text-gray-500">VIN</p>
-                <p className="font-mono font-semibold text-xs break-all">{vqaUnit.vin}</p>
+                <p className="font-mono font-semibold text-xs break-all">{wtyUnit.vin}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Mercado</p>
-                <p className="font-semibold">{vqaUnit.market}</p>
+                <p className="font-semibold">{wtyUnit.market}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Carril</p>
-                <p className="font-semibold">{vqaUnit.lane}</p>
+                <p className="font-semibold">{wtyUnit.lane}</p>
               </div>
             </div>
 
             <div>
               <p className="text-xs text-gray-500 mb-1">Defectos</p>
               <div className="flex gap-1 flex-wrap">
-                {(vqaUnit.defects || []).map(d => (
+                {(wtyUnit.defects || []).map(d => (
                   <GradeBadge key={d.id} grade={d.grade}>{d.grade} — {d.type}</GradeBadge>
                 ))}
               </div>
@@ -583,12 +583,12 @@ export default function Page() {
 
             <div>
               <label className="block text-sm font-semibold text-gray-800 mb-1">
-                Comentario para VQA <span className="font-normal text-gray-500">(opcional)</span>
+                Comentario para WTY <span className="font-normal text-gray-500">(opcional)</span>
               </label>
               <textarea
-                value={vqaComment}
-                onChange={e => setVqaComment(e.target.value)}
-                placeholder="Ej: VQA ya realizó revisión presencial, defecto V3 aceptado..."
+                value={wtyComment}
+                onChange={e => setWtyComment(e.target.value)}
+                placeholder="Ej: WTY ya realizó revisión presencial, defecto V3 aceptado..."
                 rows={3}
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
               />
@@ -596,9 +596,9 @@ export default function Page() {
 
             <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
               <p className="text-xs text-purple-700">
-                Al confirmar, la unidad pasará a <strong>Pendiente VQA</strong>. Si VQA
+                Al confirmar, la unidad pasará a <strong>Pendiente WTY</strong>. Si WTY
                 valida que el defecto no requiere reparación, se liberará directamente. Si
-                VQA rechaza, la unidad se enviará a <strong>Body</strong> para reparación.
+                WTY rechaza, la unidad se enviará a <strong>Body</strong> para reparación.
               </p>
             </div>
           </div>

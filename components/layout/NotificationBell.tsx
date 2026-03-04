@@ -12,7 +12,7 @@ type NotificationItem = {
   id: number;
   userId: number;
   unitId: number;
-  type: 'UNIT_REPORTED' | 'UNIT_RELEASED' | 'UNIT_REJECTED' | 'UNIT_ARCHIVED' | 'STATUS_CHANGED' | 'DEFECT_ADDED' | 'REPAIR_ESTIMATED' | 'VQA_PENDING';
+  type: 'UNIT_REPORTED' | 'UNIT_RELEASED' | 'UNIT_DELIVERED' | 'UNIT_WWS_RELEASED' | 'UNIT_ACCEPTED' | 'UNIT_REJECTED' | 'UNIT_RETURNED_TO_SENT' | 'UNIT_ARCHIVED' | 'STATUS_CHANGED' | 'DEFECT_ADDED' | 'REPAIR_ESTIMATED' | 'WTY_PENDING' | 'WTY_RELEASED';
   message: string | null;
   isRead: boolean;
   createdAt: Date;
@@ -21,12 +21,17 @@ type NotificationItem = {
 const notificationMeta: Record<NotificationItem['type'], { title: string; tone: 'high' | 'medium' | 'low' }> = {
   UNIT_REPORTED: { title: 'Unidad reportada por carrier', tone: 'high' },
   UNIT_RELEASED: { title: 'Unidad liberada en BODY', tone: 'medium' },
+  UNIT_DELIVERED: { title: 'Unidad entregada a Body', tone: 'medium' },
+  UNIT_WWS_RELEASED: { title: 'Unidad liberada por WWS', tone: 'medium' },
+  UNIT_ACCEPTED: { title: 'Unidad aceptada por Carrier', tone: 'medium' },
   UNIT_REJECTED: { title: 'Unidad rechazada por Carrier', tone: 'high' },
+  UNIT_RETURNED_TO_SENT: { title: 'Unidad rechazada regresada a WWS', tone: 'high' },
   UNIT_ARCHIVED: { title: 'Unidad archivada', tone: 'low' },
   STATUS_CHANGED: { title: 'Cambio de estado', tone: 'low' },
   DEFECT_ADDED: { title: 'Defecto agregado', tone: 'low' },
-  REPAIR_ESTIMATED: { title: 'Reparacion estimada', tone: 'low' },
-  VQA_PENDING: { title: 'Validación VQA requerida', tone: 'high' },
+  REPAIR_ESTIMATED: { title: 'Reparación estimada', tone: 'low' },
+  WTY_PENDING: { title: 'Validación WTY requerida', tone: 'high' },
+  WTY_RELEASED: { title: 'Unidad aprobada por WTY', tone: 'medium' },
 };
 
 const toneColor = (tone: 'high' | 'medium' | 'low') => {

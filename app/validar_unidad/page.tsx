@@ -26,7 +26,7 @@ type Unit = {
   market: string;
   lane: string;
   statusName: string;
-  vqaComment?: string | null;
+  wtyComment?: string | null;
   defects?: Defect[];
 };
 
@@ -41,7 +41,7 @@ const ValidarUnidadPage = () => {
     if (!token) return;
     setLoading(true);
     try {
-      const r = await fetch(`${API_BASE}/units?status=VQA_PENDING`, {
+      const r = await fetch(`${API_BASE}/units?status=WTY_PENDING`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await r.json();
@@ -98,7 +98,7 @@ const ValidarUnidadPage = () => {
           <div className="mb-6 md:mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
-                Validación VQA
+                Validación WTY
               </h1>
               <p className="text-sm md:text-base text-gray-600">
                 Confirma la liberación de unidades enviadas por WWS con defectos V2/V3.
@@ -186,9 +186,9 @@ const ValidarUnidadPage = () => {
                             </div>
                           </TableCell>
                           <TableCell>
-                            {u.vqaComment ? (
+                            {u.wtyComment ? (
                               <span className="text-xs text-gray-700 italic max-w-[150px] block truncate">
-                                "{u.vqaComment}"
+                                "{u.wtyComment}"
                               </span>
                             ) : (
                               <span className="text-xs text-gray-400">—</span>
@@ -238,12 +238,12 @@ const ValidarUnidadPage = () => {
                   Rechazar — Enviar a Body
                 </Button>
                 <Button
-                  onClick={() => selected && updateStatus(selected.id, 'WWS_RELEASED')}
+                  onClick={() => selected && updateStatus(selected.id, 'WTY_RELEASED')}
                   size="sm"
                   className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-semibold text-xs px-3 py-1.5"
                   disabled={loading}
                 >
-                  ✓ Confirmar Liberación
+                  ✓ Confirmar Liberación WTY
                 </Button>
               </div>
             </div>
@@ -268,10 +268,10 @@ const ValidarUnidadPage = () => {
               </div>
 
               {/* Comentario de WWS */}
-              {selected.vqaComment && (
+              {selected.wtyComment && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-xs font-semibold text-blue-700 mb-1">📝 Comentario de WWS</p>
-                  <p className="text-sm text-blue-900 italic">"{selected.vqaComment}"</p>
+                  <p className="text-sm text-blue-900 italic">"{selected.wtyComment}"</p>
                 </div>
               )}
 
@@ -306,7 +306,7 @@ const ValidarUnidadPage = () => {
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <p className="text-xs font-semibold text-amber-800 mb-1">Criterio de validación</p>
                 <p className="text-xs text-amber-700">
-                  Revisa los defectos con base en el criterio VQA. Si cumplen el estándar de
+                  Revisa los defectos con base en el criterio WTY. Si cumplen el estándar de
                   calidad, confirma la liberación. Si no, rechaza para que Body retome la
                   reparación.
                 </p>

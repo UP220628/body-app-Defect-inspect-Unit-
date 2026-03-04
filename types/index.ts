@@ -32,7 +32,10 @@ export interface Unit {
   plant?: Plant;
   estimatedRepairHours?: number;
   estimatedCompletionDate?: Date;
-  vqaComment?: string | null;
+  wtyComment?: string | null;
+  rejectionNote?: string | null;
+  archivedAt?: Date | null;
+  archivedById?: number | null;
   priorityNote?: string;
   priorityRank?: number;
   priorityAssignedById?: number;

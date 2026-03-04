@@ -5,23 +5,24 @@ export const ROLES = {
   BODY: 3,
   CARRIER: 4,
   ADMIN: 5,
-  VQA: 6,
+  WTY: 6,
+  SCM_QUALITY: 7,
 } as const;
 
 export type RoleId = typeof ROLES[keyof typeof ROLES];
 
 export const ROUTE_PERMISSIONS: Record<string, number[]> = {
-  '/home': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.VQA], // Todos
+  '/home': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.WTY, ROLES.SCM_QUALITY], // Todos
   '/dashboards': [ROLES.ADMIN, ROLES.SCM], // ADMIN y SCM
   '/gestion_wws': [ROLES.ADMIN, ROLES.WWS], // ADMIN y WWS
-  '/logs': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.VQA], // Todos
+  '/logs': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.WTY, ROLES.SCM_QUALITY], // Todos
   '/recibir_unidades': [ROLES.ADMIN, ROLES.BODY], // ADMIN y BODY
   '/reparar_unidades': [ROLES.ADMIN, ROLES.BODY], // ADMIN y BODY
   '/prioridad_reparaciones': [ROLES.ADMIN, ROLES.SCM], // ADMIN y SCM
   '/reportar_unidad': [ROLES.ADMIN, ROLES.CARRIER], // ADMIN y CARRIER
   '/aceptar_unidades': [ROLES.ADMIN, ROLES.CARRIER], // ADMIN y CARRIER
-  '/validar_unidad': [ROLES.ADMIN, ROLES.VQA], // ADMIN y VQA
-  '/profile': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.VQA], // Todos pueden ver perfil
+  '/validar_unidad': [ROLES.ADMIN, ROLES.WTY, ROLES.SCM_QUALITY], // ADMIN, WTY y SCM_QUALITY
+  '/profile': [ROLES.ADMIN, ROLES.WWS, ROLES.SCM, ROLES.BODY, ROLES.CARRIER, ROLES.WTY, ROLES.SCM_QUALITY], // Todos pueden ver perfil
 };
 
 export function canAccessRoute(roleId: number, path: string): boolean {
@@ -42,5 +43,6 @@ export const ROLE_NAMES: Record<number, string> = {
   [ROLES.BODY]: 'BODY',
   [ROLES.CARRIER]: 'CARRIER',
   [ROLES.ADMIN]: 'ADMIN',
-  [ROLES.VQA]: 'VQA',
+  [ROLES.WTY]: 'WTY',
+  [ROLES.SCM_QUALITY]: 'SCM_QUALITY',
 };

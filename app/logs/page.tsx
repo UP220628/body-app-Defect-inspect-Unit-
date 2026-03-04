@@ -13,6 +13,23 @@ import { useUnitEvents } from '@/lib/useUnitEvents';
 import { API_BASE } from '@/lib/api';
 import { ROLES } from '@/lib/permissions';
 
+/** Mapeo de estados en inglés a español para mostrar en notas y UI */
+const statusToSpanish: Record<string, string> = {
+  REPORTED: 'Reportada',
+  SENT: 'Nivelación WWS',
+  DELIVERED: 'Entregada a Body',
+  RECEIVED: 'Recibida en Body',
+  IN_REPAIR: 'En Reparación',
+  RELEASED: 'Liberada Body',
+  WTY_PENDING: 'Validación WTY',
+  WTY_RELEASED: 'Liberada WTY',
+  WWS_RELEASED: 'Liberada WWS',
+  ACCEPTED: 'Aceptada Carrier',
+  REJECTED: 'Rechazada Carrier',
+  ARCHIVED: 'Archivada',
+  UNAVAILABLE: 'No disponible',
+};
+
 
 export default function Page (){
   const { token, user } = useAuth();
@@ -355,15 +372,17 @@ export default function Page (){
                     <TableHeadCell className="px-3 py-2 text-[11px]">VIN</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Mercado</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Carril</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Reportada</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Nivelación</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Entregada</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Recibida</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">En Reparacion</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Liberada Body</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Liberada WWS</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Aceptada</TableHeadCell>
-                    <TableHeadCell className="px-3 py-2 text-[11px]">Rechazada</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Reportada (Carrier/WWS)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Nivelación (WWS)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Entregada (WWS)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Recibida (Body)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">En Reparación (Body)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Liberada Body (Body)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Validación WTY (WTY/SCM Quality)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Liberada WTY (WTY/SCM Quality)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Liberada WWS (WWS)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Aceptada (Carrier)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Rechazada (Carrier)</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Registrado por</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Notas</TableHeadCell>
                   </TableRow>
@@ -387,6 +406,8 @@ export default function Page (){
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.RECEIVED)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.IN_REPAIR)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.RELEASED)}</TableCell>
+                      <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.WTY_PENDING)}</TableCell>
+                      <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.WTY_RELEASED)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.WWS_RELEASED)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.ACCEPTED)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.REJECTED)}</TableCell>
@@ -490,14 +511,16 @@ export default function Page (){
                 <h3 className="font-semibold text-gray-900 mb-3">Historial de Notas</h3>
                 {selectedUnitNotes.notes && selectedUnitNotes.notes.length > 0 ? (
                   <div className="space-y-3">
-                    {selectedUnitNotes.notes.map((noteItem: any, idx: number) => (
+                    {selectedUnitNotes.notes.map((noteItem: any, idx: number) => {
+                      const statusLabel = statusToSpanish[noteItem.status] || noteItem.status;
+                      return (
                       <div 
                         key={idx} 
                         className="border border-gray-200 rounded-lg p-4 bg-white hover:bg-gray-50 transition"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 font-semibold text-xs rounded-full">
-                            {noteItem.status}
+                            {statusLabel}
                           </span>
                           <span className="text-xs text-gray-500">
                             {formatTime(noteItem.timestamp)}
@@ -507,7 +530,7 @@ export default function Page (){
                           {noteItem.note}
                         </p>
                       </div>
-                    ))}
+                    )})}
                   </div>
                 ) : (
                   <p className="text-gray-500 text-sm text-center py-8">

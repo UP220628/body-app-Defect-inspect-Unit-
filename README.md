@@ -16,6 +16,7 @@ npm start         # servidor de producción
 ```
 
 La app espera que el backend esté corriendo en el puerto configurado en `lib/api.ts` (`API_BASE`).
+Api Base usa el url del enviroment que se define en el archivo `.env`.
 
 ---
 

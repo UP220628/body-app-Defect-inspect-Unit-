@@ -17,7 +17,7 @@ const ALL_ROUTES = [
   { href: '/reparar_unidades', label: 'Unidades a Reparar' },
   { href: '/prioridad_reparaciones', label: 'Prioridad Reparaciones' },
   { href: '/aceptar_unidades', label: 'Aceptar Unidades' },
-  { href: '/validar_unidad', label: 'Validación VQA' },
+  { href: '/validar_unidad', label: 'Validación de Unidades' },
   { href: '/dashboards', label: 'Dashboard' },
   { href: '/logs', label: 'Historial de Unidades' },
 ];
