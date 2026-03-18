@@ -8,13 +8,9 @@ import { Modal } from '@/components/ui/Modal';
 import { BarcodeScanner } from '@/components/ui/BarcodeScanner';
 import { useAuth } from '@/lib/auth';
 import { API_BASE } from '@/lib/api';
+import { damageTypes, zones, DEFAULT_DEFECT_TYPE, DEFAULT_ZONE } from '@/lib/defectCatalog';
 
 type Grade = 'V1' | 'V2';
-
-interface DamageOption {
-  code: string;
-  label: string;
-}
 
 interface Defect {
   id: number;
@@ -35,137 +31,6 @@ interface ReportFormProps {
 
 const grades: Grade[] = ['V1', 'V2'];
 
-const damageTypes: DamageOption[] = [
-  { code: '01', label: 'Doblado | Superficie deformada o parte debido a un impacto' },
-  { code: '02', label: 'Inoperable' },
-  { code: '03', label: 'Corte | Borde ligeramente aserrado, no partido o resquebrajado' },
-  { code: '04', label: 'Aboyadura | Pintura o cromado dañado' },
-  { code: '05', label: 'Astillado o esconchado | No aplica a vidrios' },
-  { code: '06', label: 'Quebrado | No aplica a vidrios (grieta por impacto, piezas unidas)' },
-  { code: '07', label: 'Raspadura | Cavidad o malformación en metal o superficie plástica' },
-  { code: '08', label: 'Perdido | Parte o accesorio no presente en inspección' },
-  { code: '09', label: 'Raspadura | Marca que no rompe la superficie del material' },
-  { code: '10', label: 'Manchado o embarrado | Interior del vehículo (tapicería)' },
-  { code: '11', label: 'Perforación | Agujero causado por perforación' },
-  { code: '12', label: 'Raspadura | No aplica a vidrios (marca lineal en pintura o cromado)' },
-  { code: '13', label: 'Rasgadura | Similar a corte pero bordes rasgados' },
-  { code: '14', label: 'Pintura o superficie cromada abollada pero no dañada' },
-  { code: '15', label: 'Cobertura completa de protección del vehículo | Dañada' },
-  { code: '16', label: 'Evento Térmico/Fuego | Evidencia de incendios o fuego visible' },
-  { code: '18', label: 'Moldura/Emblema/Sellos dañados | Por impacto directo o adyacente' },
-  { code: '19', label: 'Moldura/Emblema/Sellos sueltos | Por impacto directo o adyacente' },
-  { code: '20', label: 'Vidrio agrietado | Por impacto, piezas permanecen unidas' },
-  { code: '21', label: 'Vidrio roto | Quebrado por impacto al panel o molduras' },
-  { code: '22', label: 'Vidrio astillado | Fragmento removido por impacto' },
-  { code: '23', label: 'Vidrio rayado | Raya lineal en el cristal' },
-  { code: '24', label: 'Luz de marcado dañada | Lente o montura dañados' },
-  { code: '25', label: 'Etiquetas/franjas de pintura/calcomanías dañadas | Exterior' },
-  { code: '29', label: 'Contaminación, Exterior | Polvo industrial, óxido, pintura, lluvia ácida' },
-  { code: '30', label: 'Derrame de líquido, Exterior | Descoloración por fluido o substancia aerotransportada' },
-  { code: '31', label: 'Robo y vandalismo | Remoción no autorizada o destrucción deliberada' },
-  { code: '34', label: 'Astillado en el Borde del Panel | Alrededor del borde, ej. borde de puerta' },
-  { code: '36', label: 'Parte incorrecta o accesorio no como facturado | No es daño de transportación' },
-  { code: '37', label: 'Hardware | Dañado' },
-  { code: '38', label: 'Hardware | Suelto o perdido' },
-];
-
-const zones: DamageOption[] = [
-  { code: '01', label: 'Antena/Antena Base' },
-  { code: '02', label: 'Batería' },
-  { code: '03', label: 'Parachoques/Cubierta/Exterior | Delantero' },
-  { code: '04', label: 'Parachoques/Cubierta/Exterior | Trasero' },
-  { code: '05', label: 'Protector de Parachoques/Strip | Delantero' },
-  { code: '06', label: 'Parachoques Protector/Strip | Trasero' },
-  { code: '07', label: 'Puerta Trasera de Carga | Derecha' },
-  { code: '08', label: 'Puerta Trasera de Carga | Izquierda' },
-  { code: '09', label: 'Puerta Corrediza Izquierda/Derecha Trasera' },
-  { code: '10', label: 'Puerta | Frente Izquierdo' },
-  { code: '11', label: 'Puerta | Trasera Izquierda' },
-  { code: '12', label: 'Puerta | Frente Derecho' },
-  { code: '13', label: 'Puerta | Derecha Trasera' },
-  { code: '14', label: 'Salpicadera | Delantero Izquierdo' },
-  { code: '15', label: 'Qtr Panel/Pick Up Caja | Izquierda' },
-  { code: '16', label: 'Salpicadera | Delantero Derecho' },
-  { code: '17', label: 'Qtr Panel/Pick Up Caja | Derecha' },
-  { code: '18', label: 'Alfombras de Piso | Delantero' },
-  { code: '19', label: 'Alfombras de Piso | Traseras' },
-  { code: '20', label: 'Parabrisa' },
-  { code: '21', label: 'Vidrio | Trasero' },
-  { code: '22', label: 'Rejilla' },
-  { code: '23', label: 'Accesorios Sueltos Dentro del Vehículo/Bolsa/Caja' },
-  { code: '24', label: 'Faro/Tapa/Señal de Giro' },
-  { code: '25', label: 'Lámparas | Niebla/Conducción/Luz Puntual' },
-  { code: '26', label: 'Forro o Cobertor Interior de Techo' },
-  { code: '27', label: 'Capó' },
-  { code: '28', label: 'Llaves' },
-  { code: '29', label: 'Control Remoto Sin Llave' },
-  { code: '30', label: 'Espejo | Exterior Izquierdo' },
-  { code: '31', label: 'Espejo | Exterior Derecho' },
-  { code: '32', label: 'Daño Mayor (Para uso del OEM)' },
-  { code: '33', label: 'Reproductor Multimedia Frontal' },
-  { code: '34', label: 'Reproductor Multimedia Trasero' },
-  { code: '35', label: 'Rocker Panel/Solera Exterior | Izquierda' },
-  { code: '36', label: 'Rocker Panel/Solera Exterior | Derecha' },
-  { code: '37', label: 'Techo' },
-  { code: '38', label: 'Carrera/Paso a la Izquierda' },
-  { code: '39', label: 'Tablero de Correr/Paso | Derecho' },
-  { code: '40', label: 'Neumático de Repuesto' },
-  { code: '41', label: 'Cable para Cargar Vehículo/Auto Eléctrico' },
-  { code: '42', label: 'Panel Splash/Spoiler | Delantero' },
-  { code: '44', label: 'Tanque de Gasolina' },
-  { code: '45', label: 'Luz de Cola/Hardware' },
-  { code: '46', label: 'Cabina de Camión, Trasera' },
-  { code: '48', label: 'Panel de Cubierta de Puerta | Delantero Izquierdo' },
-  { code: '50', label: 'Panel de Cubierta de Puerta | Delantero Derecho' },
-  { code: '51', label: 'Tonneau' },
-  { code: '52', label: 'Tapa de la Cubierta/Portón Trasero/Hatchback' },
-  { code: '53', label: 'Techo Corredizo/Techo de Vidrio' },
-  { code: '54', label: 'Área Debajo del Vehículo' },
-  { code: '55', label: 'Área de Carga | Otros' },
-  { code: '56', label: 'Convertible Superior' },
-  { code: '57', label: 'Tapas/Gorras de Ruedas' },
-  { code: '58', label: 'Altavoces de Radio' },
-  { code: '59', label: 'Limpiaparabrisas | Todos' },
-  { code: '60', label: 'Chocks Saltado' },
-  { code: '61', label: 'Caja de Recogida | Interior' },
-  { code: '62', label: 'Todo el Vehículo' },
-  { code: '63', label: 'Rieles/Cubierta de Cama del Camión/Barra de Luz' },
-  { code: '64', label: 'Spoiler/Deflector | Trasero' },
-  { code: '65', label: 'Portaequipajes (Tiras)/Riel de Goteo' },
-  { code: '66', label: 'Dash/Panel de Instrumentos' },
-  { code: '67', label: 'Encendedor de Cigarrillos/Bandeja de Ceniza' },
-  { code: '68', label: 'Alfombra | Delantero' },
-  { code: '69', label: 'Poste Central | Derecho' },
-  { code: '70', label: 'Poste Central | Izquierda' },
-  { code: '71', label: 'Poste de Esquina' },
-  { code: '72', label: 'Neumático Delantero Izquierdo' },
-  { code: '73', label: 'Rim/Rueda Delantera Izquierda' },
-  { code: '74', label: 'Neumático Trasero Izquierdo' },
-  { code: '75', label: 'Rim/Rueda Trasera Izquierda' },
-  { code: '76', label: 'Neumático Trasero Derecho' },
-  { code: '77', label: 'Rim/Rueda Trasera Derecha' },
-  { code: '78', label: 'Neumático Delantero Derecho' },
-  { code: '79', label: 'Rim/Rueda Delantera Derecha' },
-  { code: '80', label: 'Cowl/Cubierta entre el Hood y Cristal Delantero' },
-  { code: '81', label: 'Puerta/Tapa de Gasolina/Puerta de Carga de Batería' },
-  { code: '82', label: 'Salpicadera | Trasera Izquierda' },
-  { code: '83', label: 'Salpicadera | Trasera Derecha' },
-  { code: '84', label: 'Herramientas/Jack/Equipo para Cambio de Llantas & Lock' },
-  { code: '85', label: 'Kit de Tarjeta Multimedia' },
-  { code: '86', label: 'Sensores/Sistema Sonar de Parqueo' },
-  { code: '87', label: 'Abierto' },
-  { code: '88', label: 'Abierto' },
-  { code: '90', label: 'Marco' },
-  { code: '91', label: 'Tubo de Escape' },
-  { code: '92', label: 'Soporte de Placa de Matrícula del Vehículo' },
-  { code: '93', label: 'Volante/Airbag' },
-  { code: '94', label: 'Asiento | Delantero Izquierdo' },
-  { code: '95', label: 'Asiento | Delantero Derecho' },
-  { code: '96', label: 'Asiento | Trasero' },
-  { code: '97', label: 'Alfombra | Trasero' },
-  { code: '98', label: 'Interior' },
-  { code: '99', label: 'Compartimiento del Motor-Otros' },
-];
 const mercados = ['Domestico', 'Exportacion', 'Traslado'];
 
 const gradeColors: Record<Grade, string> = {
@@ -184,7 +49,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   const [isLoadingProviders, setIsLoadingProviders] = useState(includeProvider);
   const [defects, setDefects] = useState<Defect[]>([]);
   const [isDefectModalOpen, setIsDefectModalOpen] = useState(false);
-  const [newDefect, setNewDefect] = useState<Partial<Defect>>({ type: '09 - Raspadura – Marca que no rompe la superficie del material', zone: '10 - Puerta – Frente Izquierdo', grade: 'V2' });
+  const [newDefect, setNewDefect] = useState<Partial<Defect>>({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
@@ -233,7 +98,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   const handleAddDefect = () => {
     if (newDefect.type && newDefect.zone && newDefect.grade) {
       setDefects([...defects, { id: Date.now(), ...newDefect } as Defect]);
-      setNewDefect({ type: '09 - Raspadura – Marca que no rompe la superficie del material', zone: '10 - Puerta – Frente Izquierdo', grade: 'V2' });
+      setNewDefect({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
       setIsDefectModalOpen(false);
     }
   };

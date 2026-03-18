@@ -98,7 +98,7 @@ const ValidarUnidadPage = () => {
           <div className="mb-6 md:mb-8 flex items-start justify-between">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">
-                Validación WTY
+                Validación WTY - SCM_Quality
               </h1>
               <p className="text-sm md:text-base text-gray-600">
                 Confirma la liberación de unidades enviadas por WWS con defectos V2/V3.
@@ -270,7 +270,7 @@ const ValidarUnidadPage = () => {
               {/* Comentario de WWS */}
               {selected.wtyComment && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs font-semibold text-blue-700 mb-1">📝 Comentario de WWS</p>
+                  <p className="text-xs font-semibold text-blue-700 mb-1"> Comentario de WWS</p>
                   <p className="text-sm text-blue-900 italic">"{selected.wtyComment}"</p>
                 </div>
               )}

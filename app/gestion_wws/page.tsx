@@ -14,15 +14,10 @@ import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
 import { API_BASE } from '@/lib/api';
+import { damageTypes, zones as componentZones, DEFAULT_DEFECT_TYPE, DEFAULT_ZONE } from '@/lib/defectCatalog';
 
-const defectTypes = [
-  'Rayón', 'Abolladura', 'Despintado', 'Mancha', 'Grieta', 'Deformación', 'Corrosión', 'Otro'
-];
-const zones = [
-  'Puerta delantera', 'Puerta trasera', 'Cofre', 'Techo', 'Cajuela',
-  'Parachoques delantero', 'Parachoques trasero', 'Salpicadera delantera',
-  'Salpicadera trasera', 'Pilar', 'Panel lateral'
-];
+const defectTypes = damageTypes.map((item) => `${item.code} - ${item.label}`);
+const zones = componentZones.map((item) => `${item.code} - ${item.label}`);
 const grades = ['V1', 'V2', 'V3'] as const;
 
 type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; updatedById?: number; updatedAt?: string };
@@ -37,11 +32,19 @@ type Unit = {
 
 type TabKey = 'nivelacion' | 'entregar' | 'liberar' | 'Reportar unidad';
 
+const splitCatalogValue = (value: string) => {
+  const [code, ...rest] = value.split(' - ');
+  return {
+    code: code ?? value,
+    label: rest.length > 0 ? rest.join(' - ') : '',
+  };
+};
+
 export default function Page() {
   const { user, token } = useAuth();
   const [allUnits, setAllUnits] = useState<Unit[]>([]);
   const [selected, setSelected] = useState<Unit | null>(null);
-  const [newDefect, setNewDefect] = useState({ type: 'Rayón', zone: 'Puerta delantera', grade: 'V2' as 'V1'|'V2'|'V3' });
+  const [newDefect, setNewDefect] = useState({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' as 'V1'|'V2'|'V3' });
   const [editingDefect, setEditingDefect] = useState<Defect | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('nivelacion');
@@ -101,7 +104,7 @@ export default function Page() {
         const updatedUnit = json.data;
         setAllUnits(prev => prev.map(u => u.id === updatedUnit.id ? { ...u, defects: updatedUnit.defects } : u));
         setSelected(updatedUnit);
-        setNewDefect({ type: 'Rayón', zone: 'Puerta delantera', grade: 'V2' });
+        setNewDefect({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
       }
     } catch (err) { /* Error */ }
   };
@@ -403,8 +406,14 @@ export default function Page() {
                   {(selected.defects || []).map((d) => (
                     <div key={d.id} className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded hover:border-blue-300 hover:bg-blue-50 transition">
                       <div className="flex-1 min-w-0 mr-2">
-                        <p className="font-semibold text-xs sm:text-sm truncate">{d.type}</p>
-                        <p className="text-[10px] sm:text-xs text-gray-600 truncate">{d.zone}</p>
+                        <p className="font-semibold text-xs sm:text-sm truncate">
+                          <span className="font-mono bg-gray-100 text-gray-700 px-1 py-0.5 rounded mr-1">{splitCatalogValue(d.type).code}</span>
+                          {splitCatalogValue(d.type).label || d.type}
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-gray-600 truncate">
+                          <span className="font-mono text-gray-500">{splitCatalogValue(d.zone).code}</span>
+                          {splitCatalogValue(d.zone).label ? ` - ${splitCatalogValue(d.zone).label}` : ''}
+                        </p>
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                         <GradeBadge grade={d.grade}>{d.grade}</GradeBadge>
@@ -576,7 +585,9 @@ export default function Page() {
               <p className="text-xs text-gray-500 mb-1">Defectos</p>
               <div className="flex gap-1 flex-wrap">
                 {(wtyUnit.defects || []).map(d => (
-                  <GradeBadge key={d.id} grade={d.grade}>{d.grade} — {d.type}</GradeBadge>
+                  <GradeBadge key={d.id} grade={d.grade}>
+                    {d.grade} - {splitCatalogValue(d.type).code} {splitCatalogValue(d.type).label || d.type}
+                  </GradeBadge>
                 ))}
               </div>
             </div>
