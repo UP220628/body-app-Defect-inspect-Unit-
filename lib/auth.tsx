@@ -82,7 +82,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setupAutoRefresh(newRefreshToken);
       }
     } catch (error) {
-      console.error('Error refrescando token:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error refrescando token');
+      }
       logout();
     }
   };
@@ -170,8 +172,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error al iniciar sesiÃ³n');
+        throw new Error('No se pudo iniciar sesión');
       }
 
       const result = await response.json();

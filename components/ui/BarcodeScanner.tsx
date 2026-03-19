@@ -84,12 +84,16 @@ export const BarcodeScanner = ({ isOpen, onClose, onScan, title = 'Escanear Cód
           }
           
           if (error && !(error instanceof NotFoundException)) {
-            console.error('Error scanning:', error);
+            if (process.env.NODE_ENV !== 'production') {
+              console.error('Error scanning');
+            }
           }
         }
       );
     } catch (err: any) {
-      console.error('Error al iniciar el escáner:', err);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error al iniciar el escáner');
+      }
       setError(err.message || 'Error al acceder a la cámara');
       setIsScanning(false);
     }

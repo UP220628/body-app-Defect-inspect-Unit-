@@ -44,7 +44,9 @@ export default function Page (){
         setWeeklyData(data.data);
       }
     } catch (error) {
-      console.error('Error loading weekly data:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error loading weekly data');
+      }
     }
   }, [token]);
 
@@ -58,7 +60,9 @@ export default function Page (){
         setMonthlyData(data.data);
       }
     } catch (error) {
-      console.error('Error loading monthly data:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error loading monthly data');
+      }
     }
   }, [token]);
 
@@ -72,7 +76,9 @@ export default function Page (){
         setStatusStats(data.data || {});
       }
     } catch (error) {
-      console.error('Error loading status stats:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error loading status stats');
+      }
     }
   }, [token]);
 
@@ -99,7 +105,9 @@ export default function Page (){
         setProviderStats(sorted);
       }
     } catch (error) {
-      console.error('Error loading provider stats:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error loading provider stats');
+      }
     }
   }, [token]);
 

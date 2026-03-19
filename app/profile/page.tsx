@@ -109,8 +109,7 @@ export default function ProfilePage() {
       setUsers(prev => [json.data, ...prev]);
       setUEmail(''); setUName(''); setUPassword(''); setURole('BODY'); setUProviderId(null); setUPlant(null);
     } else {
-      const j = await res.json().catch(() => ({}));
-      alert(j.error || 'Error al crear usuario');
+      alert('Error al crear usuario');
     }
   };
 
@@ -136,8 +135,7 @@ export default function ProfilePage() {
       setUsers(u => u.map(x => x.id === id ? j.data : x));
       setEditingId(null); setUPassword(''); setUPlant(null);
     } else {
-      const j = await res.json().catch(() => ({}));
-      alert(j.error || 'Error al actualizar usuario');
+      alert('Error al actualizar usuario');
     }
   };
 
@@ -145,14 +143,14 @@ export default function ProfilePage() {
     if (!confirm('¿Eliminar este usuario?')) return;
     const res = await fetch(`${API_BASE}/users/${id}`, { method: 'DELETE', headers: authHeaders() });
     if (res.ok) setUsers(u => u.filter(x => x.id !== id));
-    else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error al eliminar'); }
+    else { alert('Error al eliminar'); }
   };
 
   const deleteProvider = async (id: number) => {
     if (!confirm('¿Eliminar este proveedor?')) return;
     const res = await fetch(`${API_BASE}/providers/${id}`, { method: 'DELETE', headers: authHeaders() });
     if (res.ok) setProviders(p => p.filter(x => x.id !== id));
-    else { const j = await res.json().catch(() => ({})); alert(j.error || 'Error al eliminar'); }
+    else { alert('Error al eliminar'); }
   };
 
   const changePassword = async () => {
@@ -169,7 +167,7 @@ export default function ProfilePage() {
         body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setPasswordError(data.error || 'No se pudo actualizar la contraseña'); return; }
+      if (!res.ok) { setPasswordError('No se pudo actualizar la contraseña'); return; }
       setPasswordMessage('Contraseña actualizada correctamente');
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
     } catch (error) { setPasswordError('No se pudo actualizar la contraseña'); }

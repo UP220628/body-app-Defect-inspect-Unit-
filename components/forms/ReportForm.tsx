@@ -68,7 +68,9 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
         setProviders(data.data);
       }
     } catch (error) {
-      console.error('Error al cargar proveedores:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error al cargar proveedores');
+      }
     } finally {
       setIsLoadingProviders(false);
     }
@@ -176,8 +178,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       });
 
       if (!unitResponse.ok) {
-        const errorData = await unitResponse.json();
-        throw new Error(errorData.error || `Error al crear la unidad (${unitResponse.status})`);
+        throw new Error(`Error al crear la unidad (${unitResponse.status})`);
       }
       
       const unitData = await unitResponse.json();
@@ -217,8 +218,8 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       // Disparar evento para actualizar listas en otras páginas
       window.dispatchEvent(new CustomEvent('unitStatusChanged'));
 
-    } catch (error: any) {
-      alert(`Error al reportar la unidad: ${error.message}`);
+    } catch {
+      alert('Error al reportar la unidad. Intenta de nuevo.');
     } finally {
       setIsSubmitting(false);
     }

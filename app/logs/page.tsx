@@ -222,7 +222,9 @@ export default function Page (){
         window.URL.revokeObjectURL(downloadUrl);
       })
       .catch((err) => {
-        console.error('Error al exportar:', err);
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('Error al exportar');
+        }
         alert('Error al exportar el archivo');
       });
   };

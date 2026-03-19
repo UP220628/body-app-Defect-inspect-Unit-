@@ -82,7 +82,9 @@ export const RepairTimelineWidget = () => {
         setLastUpdate(new Date());
       }
     } catch (error) {
-      console.error('Error loading units in repair:', error);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('Error loading units in repair');
+      }
     } finally {
       setLoading(false);
     }
