@@ -43,6 +43,14 @@ export interface Unit {
   createdAt: Date;
   updatedAt: Date;
   defects?: UnitDefect[];
+  deletionRequestId?: number;
+  deletionRequestStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  deletionRequestReason?: string;
+  deletionRequestDecisionNote?: string | null;
+  deletionRequestedAt?: string;
+  deletionDecidedAt?: string;
+  deletionRequestedBy?: string;
+  deletionDecidedBy?: string;
 }
 
 // Unit Defect interface

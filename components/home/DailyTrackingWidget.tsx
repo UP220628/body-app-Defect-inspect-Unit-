@@ -24,6 +24,14 @@ type Unit = {
   scmDecidedBy?: string;
   statusUpdatedAt?: string;
   createdAt: string;
+  deletionRequestId?: number;
+  deletionRequestStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  deletionRequestReason?: string;
+  deletionRequestDecisionNote?: string | null;
+  deletionRequestedAt?: string;
+  deletionDecidedAt?: string;
+  deletionRequestedBy?: string;
+  deletionDecidedBy?: string;
 };
 
 const DECISION_LABELS: Record<string, string> = {
@@ -50,6 +58,12 @@ export const DailyTrackingWidget = () => {
   const [decision, setDecision] = useState('');
   const [decisionNote, setDecisionNote] = useState('');
   const [archiving, setArchiving] = useState(false);
+  const [isDeleteRequestModal, setIsDeleteRequestModal] = useState(false);
+  const [deleteRequestReason, setDeleteRequestReason] = useState('');
+  const [deleteRequestSubmitting, setDeleteRequestSubmitting] = useState(false);
+  const [isDeleteReviewModal, setIsDeleteReviewModal] = useState(false);
+  const [reviewDecision, setReviewDecision] = useState<'APPROVE' | 'REJECT'>('REJECT');
+  const [reviewNote, setReviewNote] = useState('');
 
   const formatMexicoDateTime = (value?: string) => {
     if (!value) return '';
@@ -162,7 +176,87 @@ export const DailyTrackingWidget = () => {
     }
   };
 
+  const handleOpenDeleteRequest = (unit: Unit) => {
+    setSelectedUnit(unit);
+    setDeleteRequestReason('');
+    setIsDeleteRequestModal(true);
+  };
+
+  const handleSubmitDeleteRequest = async () => {
+    if (!selectedUnit || !deleteRequestReason.trim()) return;
+
+    setDeleteRequestSubmitting(true);
+    try {
+      const response = await fetch(`${API_BASE}/units/${selectedUnit.id}/deletion-requests`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: deleteRequestReason.trim() }),
+      });
+
+      if (response.ok) {
+        await loadUnits();
+        setIsDeleteRequestModal(false);
+        setSelectedUnit(null);
+        window.dispatchEvent(new CustomEvent('unitStatusChanged'));
+        return;
+      }
+
+      const payload = await response.json();
+      alert(payload?.error || payload?.detail || 'No se pudo crear la solicitud de borrado');
+    } catch (error) {
+      alert('Error al crear la solicitud de borrado');
+    } finally {
+      setDeleteRequestSubmitting(false);
+    }
+  };
+
+  const handleOpenDeleteReview = (unit: Unit) => {
+    setSelectedUnit(unit);
+    setReviewDecision('REJECT');
+    setReviewNote('');
+    setIsDeleteReviewModal(true);
+  };
+
+  const handleSubmitDeleteReview = async () => {
+    if (!selectedUnit?.deletionRequestId) return;
+
+    try {
+      const response = await fetch(`${API_BASE}/units/deletion-requests/${selectedUnit.deletionRequestId}/decision`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          decision: reviewDecision,
+          decisionNote: reviewNote || null,
+        }),
+      });
+
+      if (response.ok) {
+        await loadUnits();
+        setIsDeleteReviewModal(false);
+        setSelectedUnit(null);
+        window.dispatchEvent(new CustomEvent('unitStatusChanged'));
+        return;
+      }
+
+      const payload = await response.json();
+      alert(payload?.error || payload?.detail || 'No se pudo registrar la decisión');
+    } catch (error) {
+      alert('Error al registrar la decisión de borrado');
+    }
+  };
+
   const isSCM = user?.roleId === ROLES.SCM;
+  const isCarrier = user?.roleId === ROLES.CARRIER;
+  const isWws = user?.roleId === ROLES.WWS;
+  const canRequestDeletion = isCarrier || isWws;
+  const deletionActionButtonClass =
+    'w-full sm:w-auto min-h-10 sm:min-h-9 px-4 py-2 text-xs sm:text-sm font-semibold whitespace-nowrap shadow-sm active:scale-[0.99] transition-transform disabled:opacity-60 disabled:cursor-not-allowed';
 
   return (
     <>
@@ -254,6 +348,23 @@ export const DailyTrackingWidget = () => {
                       </div>
                       <StatusBadge status={unit.statusName} />
                     </div>
+
+                    {unit.deletionRequestStatus && (
+                      <div className="mt-2 text-xs rounded p-2 border border-gray-200 bg-gray-50">
+                        <p className="font-semibold text-gray-800">
+                          Solicitud de borrado: {unit.deletionRequestStatus === 'PENDING' ? 'Pendiente' : unit.deletionRequestStatus === 'REJECTED' ? 'Rechazada' : 'Aprobada'}
+                        </p>
+                        {unit.deletionRequestReason && (
+                          <p className="text-gray-700 mt-1">Motivo de solicitud: {unit.deletionRequestReason}</p>
+                        )}
+                        {unit.deletionRequestedBy && (
+                          <p className="text-gray-700 mt-1">Solicitado por: {unit.deletionRequestedBy}</p>
+                        )}
+                        {unit.deletionRequestDecisionNote && (
+                          <p className="text-gray-700 mt-1">Comentario SCM: {unit.deletionRequestDecisionNote}</p>
+                        )}
+                      </div>
+                    )}
                     
                     {unit.scmDecision ? (
                       <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
@@ -284,17 +395,47 @@ export const DailyTrackingWidget = () => {
                     ) : (
                       <div className="mt-2">
                         {isSCM ? (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleOpenDecision(unit)}
-                            className="w-full"
-                          >
-                            Asignar Decisión SCM
-                          </Button>
+                          <div className="space-y-2">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleOpenDecision(unit)}
+                              className="w-full"
+                            >
+                              Asignar Decisión SCM
+                            </Button>
+                            {unit.deletionRequestStatus === 'PENDING' && unit.deletionRequestId && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleOpenDeleteReview(unit)}
+                                className="w-full bg-red-100 hover:bg-red-200 text-red-800"
+                              >
+                                Revisar Solicitud de Borrado
+                              </Button>
+                            )}
+                          </div>
                         ) : (
-                          <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
-                           Esperando decisión de SCM
+                          <div className="space-y-2">
+                            <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                              Esperando decisión de SCM
+                            </div>
+                            {canRequestDeletion && unit.deletionRequestStatus !== 'PENDING' && (
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleOpenDeleteRequest(unit)}
+                                className={`${deletionActionButtonClass} bg-red-100 hover:bg-red-200 text-red-800`}
+                                disabled={deleteRequestSubmitting}
+                              >
+                                <span className="inline-flex items-center gap-1.5">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M10.29 3.86l-7.1 12.3A2 2 0 004.91 19h14.18a2 2 0 001.72-2.84l-7.1-12.3a2 2 0 00-3.44 0z" />
+                                  </svg>
+                                  Solicitar Borrado
+                                </span>
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -344,6 +485,9 @@ export const DailyTrackingWidget = () => {
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                       Fecha/Hora
                     </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -378,6 +522,37 @@ export const DailyTrackingWidget = () => {
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-500">
                         {formatMexicoDateTime(unit.statusUpdatedAt || unit.createdAt)}
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm text-gray-500">
+                        <div className="flex justify-center">
+                          {canRequestDeletion && unit.deletionRequestStatus !== 'PENDING' ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleOpenDeleteRequest(unit)}
+                              className={`${deletionActionButtonClass} bg-red-100 hover:bg-red-200 text-red-800`}
+                              disabled={deleteRequestSubmitting}
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M10.29 3.86l-7.1 12.3A2 2 0 004.91 19h14.18a2 2 0 001.72-2.84l-7.1-12.3a2 2 0 00-3.44 0z" />
+                                </svg>
+                                Solicitar borrado
+                              </span>
+                            </Button>
+                          ) : isSCM && unit.deletionRequestStatus === 'PENDING' && unit.deletionRequestId ? (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleOpenDeleteReview(unit)}
+                              className="bg-red-100 hover:bg-red-200 text-red-800"
+                            >
+                              Revisar solicitud
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -442,6 +617,115 @@ export const DailyTrackingWidget = () => {
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Detalles adicionales sobre la decisión..."
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {isDeleteRequestModal && selectedUnit && (
+        <Modal
+          isOpen={isDeleteRequestModal}
+          onClose={() => setIsDeleteRequestModal(false)}
+          title="Solicitar borrado de unidad"
+          footer={
+            <div className="flex gap-2 justify-end w-full">
+              <Button variant="secondary" onClick={() => setIsDeleteRequestModal(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSubmitDeleteRequest}
+                disabled={deleteRequestSubmitting || deleteRequestReason.trim().length < 15}
+              >
+                {deleteRequestSubmitting ? 'Enviando...' : 'Enviar solicitud'}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-600">VIN:</p>
+              <p className="font-semibold text-gray-900">{selectedUnit.vin}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Justificación (15-500 caracteres)
+              </label>
+              <textarea
+                value={deleteRequestReason}
+                onChange={(e) => setDeleteRequestReason(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Describe por qué esta unidad debe ser eliminada..."
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {isDeleteReviewModal && selectedUnit && (
+        <Modal
+          isOpen={isDeleteReviewModal}
+          onClose={() => setIsDeleteReviewModal(false)}
+          title="Revisar solicitud de borrado"
+          footer={
+            <div className="flex gap-2 justify-end w-full">
+              <Button variant="secondary" onClick={() => setIsDeleteReviewModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSubmitDeleteReview}>
+                Guardar decisión
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-gray-600">VIN:</p>
+              <p className="font-semibold text-gray-900">{selectedUnit.vin}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Solicitado por:</p>
+              <p className="text-sm text-gray-900 mt-1">{selectedUnit.deletionRequestedBy || 'No disponible'}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Motivo de solicitud:</p>
+              <p className="text-sm text-gray-900 mt-1">{selectedUnit.deletionRequestReason || 'Sin motivo'}</p>
+            </div>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="delete-review"
+                  value="APPROVE"
+                  checked={reviewDecision === 'APPROVE'}
+                  onChange={() => setReviewDecision('APPROVE')}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm text-gray-700">Aprobar y borrar unidad</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="delete-review"
+                  value="REJECT"
+                  checked={reviewDecision === 'REJECT'}
+                  onChange={() => setReviewDecision('REJECT')}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm text-gray-700">Rechazar solicitud</span>
+              </label>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nota SCM (opcional)
+              </label>
+              <textarea
+                value={reviewNote}
+                onChange={(e) => setReviewNote(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Comentario para la decisión..."
               />
             </div>
           </div>

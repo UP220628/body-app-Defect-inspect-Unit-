@@ -12,7 +12,7 @@ type NotificationItem = {
   id: number;
   userId: number;
   unitId: number;
-  type: 'UNIT_REPORTED' | 'UNIT_RELEASED' | 'UNIT_DELIVERED' | 'UNIT_WWS_RELEASED' | 'UNIT_ACCEPTED' | 'UNIT_REJECTED' | 'UNIT_RETURNED_TO_SENT' | 'UNIT_ARCHIVED' | 'STATUS_CHANGED' | 'DEFECT_ADDED' | 'REPAIR_ESTIMATED' | 'WTY_PENDING' | 'WTY_RELEASED';
+  type: 'UNIT_REPORTED' | 'UNIT_RELEASED' | 'UNIT_DELIVERED' | 'UNIT_WWS_RELEASED' | 'UNIT_ACCEPTED' | 'UNIT_REJECTED' | 'UNIT_RETURNED_TO_SENT' | 'UNIT_ARCHIVED' | 'UNIT_DELETION_REQUESTED' | 'UNIT_DELETION_APPROVED' | 'UNIT_DELETION_REJECTED' | 'STATUS_CHANGED' | 'DEFECT_ADDED' | 'REPAIR_ESTIMATED' | 'WTY_PENDING' | 'WTY_RELEASED';
   message: string | null;
   isRead: boolean;
   createdAt: Date;
@@ -27,6 +27,9 @@ const notificationMeta: Record<NotificationItem['type'], { title: string; tone: 
   UNIT_REJECTED: { title: 'Unidad rechazada por Carrier', tone: 'high' },
   UNIT_RETURNED_TO_SENT: { title: 'Unidad rechazada regresada a WWS', tone: 'high' },
   UNIT_ARCHIVED: { title: 'Unidad archivada', tone: 'low' },
+  UNIT_DELETION_REQUESTED: { title: 'Solicitud de borrado recibida', tone: 'high' },
+  UNIT_DELETION_APPROVED: { title: 'Solicitud de borrado aprobada', tone: 'medium' },
+  UNIT_DELETION_REJECTED: { title: 'Solicitud de borrado rechazada', tone: 'high' },
   STATUS_CHANGED: { title: 'Cambio de estado', tone: 'low' },
   DEFECT_ADDED: { title: 'Defecto agregado', tone: 'low' },
   REPAIR_ESTIMATED: { title: 'Reparación estimada', tone: 'low' },
