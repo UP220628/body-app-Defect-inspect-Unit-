@@ -16,6 +16,9 @@ type Unit = {
   vin: string;
   market: string;
   statusName: string;
+  defectCode?: string;
+  defectSummary?: string;
+  activeDefectCount?: number;
   isAvailableToday?: boolean;
   registeredBy?: string;
   scmDecision?: string;
@@ -79,6 +82,16 @@ export const DailyTrackingWidget = () => {
     if (hour === 0) hour = 12;
     
     return `${day}/${month}, ${hour.toString().padStart(2, '0')}:${minute} ${ampm}`;
+  };
+
+  const compactDefectText = (value?: string) => {
+    if (!value) return '';
+    return value.split('|')[0].trim();
+  };
+
+  const truncateDefectText = (value?: string, max = 42) => {
+    if (!value) return '';
+    return value.length > max ? `${value.slice(0, max - 1)}…` : value;
   };
 
   const loadUnits = useCallback(async () => {
@@ -345,6 +358,14 @@ export const DailyTrackingWidget = () => {
                       <div>
                         <p className="font-semibold text-gray-900">{unit.vin}</p>
                         <p className="text-sm text-gray-600">{unit.market}</p>
+                        {(unit.defectCode || unit.defectSummary) && (
+                          <p className="text-xs text-gray-500 mt-1" title={`${unit.defectCode ? `${unit.defectCode} - ` : ''}${compactDefectText(unit.defectSummary)}`}>
+                            <span className="font-semibold text-gray-700">{unit.defectCode || 'N/A'}</span>
+                            {' - '}
+                            {truncateDefectText(compactDefectText(unit.defectSummary), 52)}
+                            {typeof unit.activeDefectCount === 'number' && unit.activeDefectCount > 1 ? ` (+${unit.activeDefectCount - 1})` : ''}
+                          </p>
+                        )}
                       </div>
                       <StatusBadge status={unit.statusName} />
                     </div>
@@ -477,6 +498,9 @@ export const DailyTrackingWidget = () => {
                       Estado actual de la unidad
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                      Defecto
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                       Unidad disponible para el día de hoy
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
@@ -503,6 +527,24 @@ export const DailyTrackingWidget = () => {
                         <div className="flex justify-center">
                           <StatusBadge status={unit.statusName} />
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm text-gray-600">
+                        {unit.defectCode || unit.defectSummary ? (
+                          <div className="mx-auto max-w-[260px]">
+                            <p className="text-xs font-semibold text-gray-700">
+                              {unit.defectCode || 'N/A'}
+                            </p>
+                            <p
+                              className="text-xs text-gray-500 truncate"
+                              title={compactDefectText(unit.defectSummary)}
+                            >
+                              {truncateDefectText(compactDefectText(unit.defectSummary))}
+                              {typeof unit.activeDefectCount === 'number' && unit.activeDefectCount > 1 ? ` (+${unit.activeDefectCount - 1})` : ''}
+                            </p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin defecto</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex justify-center">
