@@ -38,6 +38,15 @@ const gradeColors: Record<Grade, string> = {
   V2: 'bg-yellow-100 text-yellow-800',
 };
 
+const VIN_REGEX = /^[A-Z0-9]{17}$/;
+
+function normalizeVinInput(value: string): string {
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 17);
+}
+
 export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   const { user } = useAuth();
   const [vin, setVin] = useState('');
@@ -110,7 +119,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   };
 
   const handleScanComplete = (code: string) => {
-    setVin(code);
+    setVin(normalizeVinInput(code));
     setIsScannerOpen(false);
   };
 
@@ -121,8 +130,8 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       return;
     }
 
-    if (vin.length !== 17) {
-      alert('El VIN debe tener exactamente 17 caracteres');
+    if (!VIN_REGEX.test(vin)) {
+      alert('El VIN debe tener exactamente 17 caracteres y solo contener letras mayúsculas y números');
       return;
     }
 
@@ -246,11 +255,13 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
               <input
                 type="text"
                 value={vin}
-                onChange={(e) => setVin(e.target.value.toUpperCase())}
+                onChange={(e) => setVin(normalizeVinInput(e.target.value))}
                 placeholder="Ej: JN1AB7C33L0123456"
                 className="w-full px-4 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition font-mono text-sm"
                 required
                 maxLength={17}
+                pattern="[A-Z0-9]{17}"
+                title="El VIN debe contener 17 caracteres usando solo letras mayúsculas y números"
               />
               <button
                 type="button"
