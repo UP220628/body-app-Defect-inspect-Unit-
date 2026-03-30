@@ -205,7 +205,7 @@ export const NotificationBell = () => {
         audioRef.current?.pause();
         if (audioRef.current) {
           audioRef.current.currentTime = 0;
-          audioRef.current.volume = 1;
+          audioRef.current.volume = 0.5;
         }
         if (pendingSoundRef.current) {
           pendingSoundRef.current = false;
@@ -369,3 +369,4 @@ export const NotificationBell = () => {
     </>
   );
 };
+

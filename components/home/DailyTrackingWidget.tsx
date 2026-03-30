@@ -51,6 +51,8 @@ const DECISION_COLORS: Record<string, string> = {
   NEW_TRIP: 'bg-green-100 text-green-800'
 };
 
+const DEFECT_CODE_ONLY_THRESHOLD = 3;
+
 export const DailyTrackingWidget = () => {
   const { user, token } = useAuth();
   const [units, setUnits] = useState<Unit[]>([]);
@@ -92,6 +94,18 @@ export const DailyTrackingWidget = () => {
   const truncateDefectText = (value?: string, max = 42) => {
     if (!value) return '';
     return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+  };
+
+  const shouldShowCodeOnly = (unit: Unit) => {
+    return (
+      !!unit.defectCode &&
+      typeof unit.activeDefectCount === 'number' &&
+      unit.activeDefectCount >= DEFECT_CODE_ONLY_THRESHOLD
+    );
+  };
+
+  const extraDefectCountLabel = (count?: number) => {
+    return typeof count === 'number' && count > 1 ? ` (+${count - 1})` : '';
   };
 
   const loadUnits = useCallback(async () => {
@@ -359,11 +373,22 @@ export const DailyTrackingWidget = () => {
                         <p className="font-semibold text-gray-900">{unit.vin}</p>
                         <p className="text-sm text-gray-600">{unit.market}</p>
                         {(unit.defectCode || unit.defectSummary) && (
-                          <p className="text-xs text-gray-500 mt-1" title={`${unit.defectCode ? `${unit.defectCode} - ` : ''}${compactDefectText(unit.defectSummary)}`}>
+                          <p
+                            className="text-xs text-gray-500 mt-1"
+                            title={
+                              shouldShowCodeOnly(unit)
+                                ? unit.defectCode || 'N/A'
+                                : `${unit.defectCode ? `${unit.defectCode} - ` : ''}${compactDefectText(unit.defectSummary)}`
+                            }
+                          >
                             <span className="font-semibold text-gray-700">{unit.defectCode || 'N/A'}</span>
-                            {' - '}
-                            {truncateDefectText(compactDefectText(unit.defectSummary), 52)}
-                            {typeof unit.activeDefectCount === 'number' && unit.activeDefectCount > 1 ? ` (+${unit.activeDefectCount - 1})` : ''}
+                            {!shouldShowCodeOnly(unit) && compactDefectText(unit.defectSummary) ? (
+                              <>
+                                {' - '}
+                                {truncateDefectText(compactDefectText(unit.defectSummary), 52)}
+                              </>
+                            ) : null}
+                            {extraDefectCountLabel(unit.activeDefectCount)}
                           </p>
                         )}
                       </div>
@@ -533,14 +558,17 @@ export const DailyTrackingWidget = () => {
                           <div className="mx-auto max-w-[260px]">
                             <p className="text-xs font-semibold text-gray-700">
                               {unit.defectCode || 'N/A'}
+                              {shouldShowCodeOnly(unit) ? extraDefectCountLabel(unit.activeDefectCount) : ''}
                             </p>
-                            <p
-                              className="text-xs text-gray-500 truncate"
-                              title={compactDefectText(unit.defectSummary)}
-                            >
-                              {truncateDefectText(compactDefectText(unit.defectSummary))}
-                              {typeof unit.activeDefectCount === 'number' && unit.activeDefectCount > 1 ? ` (+${unit.activeDefectCount - 1})` : ''}
-                            </p>
+                            {!shouldShowCodeOnly(unit) ? (
+                              <p
+                                className="text-xs text-gray-500 truncate"
+                                title={compactDefectText(unit.defectSummary)}
+                              >
+                                {truncateDefectText(compactDefectText(unit.defectSummary))}
+                                {extraDefectCountLabel(unit.activeDefectCount)}
+                              </p>
+                            ) : null}
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">Sin defecto</span>
