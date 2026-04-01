@@ -263,7 +263,7 @@ export default function Page() {
 
         {/* Contenido por tab */}
         {activeTab === 'Reportar unidad' ? (
-          <div className="bg-stone-50 rounded-xl p-4 sm:p-6 md:p-8 shadow-sm">
+          <div className="bg-white rounded-xl p-4 sm:p-6 md:p-8 shadow-sm">
             <div className="mb-4">
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Reportar Unidad con Daño Detectado</h2>
               <p className="text-sm text-gray-600">

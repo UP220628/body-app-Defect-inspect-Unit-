@@ -284,7 +284,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
         </div>
 
         {/* Sección de datos de unidad */}
-        <div className="bg-gray-50 p-6 rounded-lg space-y-4">
+        <div className="bg-white p-6 rounded-lg space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Datos de la Unidad</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -370,7 +370,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
         </div>
 
         {/* Sección de defectos */}
-        <div className="bg-gray-50 p-3 sm:p-4 md:p-6 rounded-lg space-y-4">
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg space-y-4">
           <div className="flex items-center justify-between gap-2">
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">Defectos Detectados</h3>
@@ -424,7 +424,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-white border-2 border-dashed border-gray-300 rounded-lg">
+            <div className="text-center py-12 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg">
               <svg className="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
               </svg>

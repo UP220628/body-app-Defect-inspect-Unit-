@@ -13,7 +13,7 @@ export default function HomePage() {
         <Header />
 
         <main className="flex-1 grid place-items-center px-4 sm:px-6 py-4 sm:py-6">
-          <div className="bg-stone-50 rounded-xl p-4 sm:p-8 md:p-12 shadow-sm w-full max-w-2xl">
+          <div className="bg-white rounded-xl p-4 sm:p-8 md:p-12 shadow-sm w-full max-w-2xl">
             <ReportForm />
           </div>
         </main>
