@@ -98,7 +98,22 @@ export function SearchableSelect({
         className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-900 shadow-sm transition hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
       >
         <span className="truncate">{selectedOption?.label ?? placeholder}</span>
-        <span className="ml-2 text-xs text-gray-500">{isOpen ? '▲' : '▼'}</span>
+        <svg
+          viewBox="0 0 16 16"
+          aria-hidden="true"
+          className={`ml-2 h-3.5 w-3.5 text-gray-500 transition-transform duration-150 ${
+            isOpen ? 'rotate-180' : 'rotate-0'
+          }`}
+        >
+          <path
+            d="M2.5 5.5L8 11l5.5-5.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
       </button>
 
       {isOpen && (
