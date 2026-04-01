@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface DropdownProps {
@@ -20,11 +20,6 @@ export const Dropdown: React.FC<DropdownProps> = ({
 }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const update = () => {
@@ -43,7 +38,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     return () => window.removeEventListener('resize', update);
   }, [isOpen, anchorRef]);
 
-  if (!isOpen || !mounted) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
   return createPortal(
     <>

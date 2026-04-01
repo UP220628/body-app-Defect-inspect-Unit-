@@ -188,7 +188,7 @@ const ValidarUnidadPage = () => {
                           <TableCell>
                             {u.wtyComment ? (
                               <span className="text-xs text-gray-700 italic max-w-[150px] block truncate">
-                                "{u.wtyComment}"
+                                &quot;{u.wtyComment}&quot;
                               </span>
                             ) : (
                               <span className="text-xs text-gray-400">—</span>
@@ -271,7 +271,7 @@ const ValidarUnidadPage = () => {
               {selected.wtyComment && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-xs font-semibold text-blue-700 mb-1"> Comentario de WWS</p>
-                  <p className="text-sm text-blue-900 italic">"{selected.wtyComment}"</p>
+                  <p className="text-sm text-blue-900 italic">&quot;{selected.wtyComment}&quot;</p>
                 </div>
               )}
 

@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dropdown } from '@/components/ui/Dropdown';
-import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/lib/auth';
 import { API_BASE } from '@/lib/api';
 
@@ -16,6 +15,16 @@ type NotificationItem = {
   message: string | null;
   isRead: boolean;
   createdAt: Date;
+};
+
+type NotificationApiItem = {
+  id: number;
+  userId: number;
+  unitId: number;
+  type: NotificationItem['type'];
+  message: string | null;
+  isRead: boolean;
+  createdAt: string;
 };
 
 const notificationMeta: Record<NotificationItem['type'], { title: string; tone: 'high' | 'medium' | 'low' }> = {
@@ -74,7 +83,7 @@ export const NotificationBell = () => {
     [notifications]
   );
 
-  const mergeNotifications = (existing: NotificationItem[], incoming: NotificationItem[]) => {
+  const mergeNotifications = useCallback((existing: NotificationItem[], incoming: NotificationItem[]) => {
     const map = new Map<number, NotificationItem>();
     for (const item of existing) map.set(item.id, item);
     for (const item of incoming) map.set(item.id, item);
@@ -82,7 +91,7 @@ export const NotificationBell = () => {
     return Array.from(map.values()).sort(
       (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
     );
-  };
+  }, []);
 
   const handleDeleteNotification = async (id: number) => {
     if (!token) return;
@@ -99,18 +108,18 @@ export const NotificationBell = () => {
 
       setNotifications(prev => prev.filter(item => item.id !== id));
       seenIdsRef.current.delete(id);
-    } catch (error) {
+    } catch {
       // Error eliminando notificacion
     }
   };
 
-  const tryPlaySound = () => {
+  const tryPlaySound = useCallback(() => {
     if (!audioRef.current) return;
     audioRef.current.currentTime = 0;
     audioRef.current.play().catch(() => {
       pendingSoundRef.current = true;
     });
-  };
+  }, []);
 
   const registerSeen = (items: NotificationItem[]) => {
     items.forEach(item => seenIdsRef.current.add(item.id));
@@ -124,7 +133,8 @@ export const NotificationBell = () => {
     registerSeen(items);
   };
 
-  const fetchNotifications = async () => {
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const fetchNotifications = useCallback(async () => {
     if (!token) return;
 
     try {
@@ -139,7 +149,11 @@ export const NotificationBell = () => {
       const data = await response.json();
       if (!data?.ok) return;
 
-      const items: NotificationItem[] = (data.data || []).map((item: any) => ({
+      const sourceItems: NotificationApiItem[] = Array.isArray(data.data)
+        ? (data.data as NotificationApiItem[])
+        : [];
+
+      const items: NotificationItem[] = sourceItems.map((item) => ({
         id: item.id,
         userId: item.userId,
         unitId: item.unitId,
@@ -157,10 +171,10 @@ export const NotificationBell = () => {
       } else {
         playIfNew(items);
       }
-    } catch (error) {
+    } catch {
       // Error cargando notificaciones
     }
-  };
+  }, [mergeNotifications, token, tryPlaySound]);
 
   const markAllRead = async () => {
     if (!token) return;
@@ -176,7 +190,7 @@ export const NotificationBell = () => {
       if (!response.ok) return;
 
       setNotifications(prev => prev.map(item => ({ ...item, isRead: true })));
-    } catch (error) {
+    } catch {
       // Error marcando notificaciones
     }
   };
@@ -195,7 +209,7 @@ export const NotificationBell = () => {
       console.warn('No se pudo cargar el archivo de sonido de notificación');
     };
     audioRef.current = audio;
-  }, []);
+  }, [tryPlaySound]);
 
   useEffect(() => {
     const unlockAudio = () => {
@@ -205,7 +219,7 @@ export const NotificationBell = () => {
         audioRef.current?.pause();
         if (audioRef.current) {
           audioRef.current.currentTime = 0;
-          audioRef.current.volume = 0.5;
+          audioRef.current.volume = 0.2;
         }
         if (pendingSoundRef.current) {
           pendingSoundRef.current = false;
@@ -225,17 +239,20 @@ export const NotificationBell = () => {
   useEffect(() => {
     if (!user || !token) return;
 
-    fetchNotifications();
+    const timeoutId = window.setTimeout(() => {
+      void fetchNotifications();
+    }, 0);
 
     const handleUnitChange = () => {
-      fetchNotifications();
+      void fetchNotifications();
     };
     window.addEventListener('unitStatusChanged', handleUnitChange);
 
     return () => {
+      window.clearTimeout(timeoutId);
       window.removeEventListener('unitStatusChanged', handleUnitChange);
     };
-  }, [user, token]);
+  }, [user, token, fetchNotifications]);
 
   useEffect(() => {
     if (!token) return;
@@ -252,9 +269,10 @@ export const NotificationBell = () => {
         const data = JSON.parse(event.data);
         if (data.type !== 'notification' || !Array.isArray(data.payload)) return;
 
-        const incoming: NotificationItem[] = data.payload
-          .filter((item: any) => !user || item.userId === user.id)
-          .map((item: any) => ({
+        const payload = data.payload as NotificationApiItem[];
+        const incoming: NotificationItem[] = payload
+          .filter((item) => !user || item.userId === user.id)
+          .map((item) => ({
             id: item.id,
             userId: item.userId,
             unitId: item.unitId,
@@ -268,7 +286,7 @@ export const NotificationBell = () => {
 
         setNotifications(prev => mergeNotifications(prev, incoming));
         playIfNew(incoming);
-      } catch (error) {
+      } catch {
         // Error parseando mensaje
       }
     };
@@ -283,7 +301,7 @@ export const NotificationBell = () => {
         socket.close();
       }
     };
-  }, [token, user]);
+  }, [token, user, mergeNotifications, playIfNew]);
 
   return (
     <>

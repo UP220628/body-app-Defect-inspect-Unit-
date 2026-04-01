@@ -187,14 +187,11 @@ export const DailyTrackingWidget = () => {
       const response = await fetch(`${API_BASE}/units/${unit.id}/archive`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ archivedById: user.id })
       });
       if (response.ok) {
         await loadUnits();
-        window.dispatchEvent(new CustomEvent('unitStatusChanged'));
       }
     } catch (error) {
       alert('Error al archivar unidad');
@@ -279,6 +276,8 @@ export const DailyTrackingWidget = () => {
   };
 
   const isSCM = user?.roleId === ROLES.SCM;
+  const isAdmin = user?.roleId === ROLES.ADMIN;
+  const canArchive = isSCM || isAdmin;
   const isCarrier = user?.roleId === ROLES.CARRIER;
   const isWws = user?.roleId === ROLES.WWS;
   const canRequestDeletion = isCarrier || isWws;
@@ -426,7 +425,7 @@ export const DailyTrackingWidget = () => {
                           <p className="text-xs text-gray-700 mt-1">{unit.scmDecisionNote}</p>
                         )}
                         <p className="text-xs text-gray-500 mt-1">Decidido por: {unit.scmDecidedBy}</p>
-                        {isSCM && (
+                        {canArchive && (
                           <Button
                             size="sm"
                             variant="secondary"

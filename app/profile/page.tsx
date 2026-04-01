@@ -9,6 +9,14 @@ import { API_BASE } from '@/lib/api';
 
 type Provider = { id: number; name: string; code?: string };
 type User = { id: number; email: string; name: string; roleId: number; roleName?: string; providerId?: number | null; providerName?: string; plant?: string | null };
+type UserUpsertPayload = {
+  email: string;
+  name: string;
+  roleId: string;
+  password?: string;
+  providerId?: number | null;
+  plant?: string | null;
+};
 
 const ROLE_OPTIONS = ['WWS', 'SCM', 'BODY', 'CARRIER', 'WTY', 'SCM_QUALITY', 'ADMIN'];
 const PLANT_OPTIONS = ['A1', 'A2'] as const;
@@ -99,7 +107,7 @@ export default function ProfilePage() {
   };
 
   const createUser = async () => {
-    const body: any = { email: uEmail, password: uPassword, name: uName, roleId: uRole };
+    const body: UserUpsertPayload = { email: uEmail, password: uPassword, name: uName, roleId: uRole };
     if (uRole === 'CARRIER') body.providerId = uProviderId;
     // ADMIN no necesita planta (ve ambas), otros roles sí
     if (uRole !== 'ADMIN' && uPlant) body.plant = uPlant;
@@ -124,7 +132,7 @@ export default function ProfilePage() {
   };
 
   const saveEdit = async (id: number) => {
-    const body: any = { email: uEmail, name: uName, roleId: uRole };
+    const body: UserUpsertPayload = { email: uEmail, name: uName, roleId: uRole };
     if (uPassword) body.password = uPassword;
     body.providerId = uRole === 'CARRIER' ? uProviderId : null;
     // ADMIN no necesita planta, otros roles sí

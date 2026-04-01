@@ -27,6 +27,16 @@ type Unit = {
   isAvailableToday?: boolean;
 };
 
+type StatusUpdatePayload = {
+  newStatus: 'IN_REPAIR' | 'RELEASED' | 'UNAVAILABLE';
+  changedById: number;
+  estimatedRepairHours?: number;
+  note?: string;
+  isAvailableToday?: boolean;
+};
+
+type PriorityUnitApi = { id: number; priorityRank?: number };
+
 const repairCatalog = [
   { grade: 'V1', hours: 8, label: 'Grave - 8h' },
   { grade: 'V2', hours: 4, label: 'Moderado - 4h' },
@@ -101,7 +111,7 @@ export default function Page() {
     
     try {
       // Preparar el body, incluyendo horas estimadas solo cuando se inicia reparación
-      const body: any = { newStatus, changedById: user.id };
+      const body: StatusUpdatePayload = { newStatus, changedById: user.id };
       if (newStatus === 'IN_REPAIR' && estimatedHours) {
         body.estimatedRepairHours = parseFloat(estimatedHours);
       }
@@ -122,7 +132,7 @@ export default function Page() {
           u.id === selectedUnit.id 
             ? { 
                 ...u, 
-                statusName: newStatus as any, 
+                statusName: newStatus,
                 priorityRank: undefined,
                 estimatedRepairHours: updatedUnit.estimatedRepairHours 
               } 
@@ -154,7 +164,7 @@ export default function Page() {
             if (j?.ok) {
               setAllUnits(prev => prev.map(u => {
                 if (u.statusName !== 'RECEIVED') return u;
-                const updated = j.data.find((nu: any) => nu.id === u.id);
+                const updated = (j.data as PriorityUnitApi[]).find((nu) => nu.id === u.id);
                 return updated ? { ...u, priorityRank: updated.priorityRank } : u;
               }));
             }
@@ -179,7 +189,7 @@ export default function Page() {
     if (!selectedUnit || !user) return;
     
     try {
-      const body: any = { 
+      const body: StatusUpdatePayload = {
         newStatus: 'UNAVAILABLE', 
         changedById: user.id,
         isAvailableToday: false 
@@ -227,7 +237,7 @@ export default function Page() {
             if (j?.ok) {
               setAllUnits(prev => prev.map(u => {
                 if (u.id === selectedUnit.id) return { ...u, statusName: 'UNAVAILABLE', isAvailableToday: false };
-                const updated = j.data.find((nu: any) => nu.id === u.id);
+                const updated = (j.data as PriorityUnitApi[]).find((nu) => nu.id === u.id);
                 return updated ? { ...u, priorityRank: updated.priorityRank } : u;
               }));
             }
@@ -292,7 +302,7 @@ export default function Page() {
     if (!selectedUnit || !user) return;
     
     try {
-      const body: any = { 
+      const body: StatusUpdatePayload = {
         newStatus: 'IN_REPAIR', 
         changedById: user.id,
         isAvailableToday: true

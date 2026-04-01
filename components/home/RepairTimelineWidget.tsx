@@ -71,7 +71,7 @@ export const RepairTimelineWidget = () => {
 
   const loadUnits = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/units/in-repair`, {
+      const response = await fetch(`${API_BASE}/units/in-repair?includeArchived=true`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },

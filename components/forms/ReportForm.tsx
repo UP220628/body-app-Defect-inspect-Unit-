@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Input } from '@/components/ui/Input';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { BarcodeScanner } from '@/components/ui/BarcodeScanner';
+import { SearchableSelect, type SearchableOption } from '@/components/ui/SearchableSelect';
 import { useAuth } from '@/lib/auth';
 import { API_BASE } from '@/lib/api';
 import { damageTypes, zones, DEFAULT_DEFECT_TYPE, DEFAULT_ZONE } from '@/lib/defectCatalog';
@@ -23,6 +23,14 @@ interface Provider {
   id: number;
   name: string;
   code?: string;
+}
+
+interface UnitPayload {
+  vin: string;
+  market: string;
+  lane: string;
+  registeredById: number;
+  providerId?: number;
 }
 
 interface ReportFormProps {
@@ -62,6 +70,38 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
+  const defectTypeOptions = useMemo<SearchableOption[]>(
+    () => damageTypes.map((damageType) => ({
+      value: `${damageType.code} - ${damageType.label}`,
+      label: `${damageType.code} - ${damageType.label}`,
+      searchText: `${damageType.code} ${damageType.label}`,
+    })),
+    [],
+  );
+
+  const zoneOptions = useMemo<SearchableOption[]>(
+    () => zones.map((zone) => ({
+      value: `${zone.code} - ${zone.label}`,
+      label: `${zone.code} - ${zone.label}`,
+      searchText: `${zone.code} ${zone.label}`,
+    })),
+    [],
+  );
+
+  const laneOptions = useMemo<SearchableOption[]>(
+    () => Array.from({ length: 100 }, (_, index) => {
+      const lane = `Carril ${index + 1}`;
+      return {
+        value: lane,
+        label: lane,
+        searchText: `${index + 1}`,
+      };
+    }),
+    [],
+  );
+
+  const validLaneValues = useMemo(() => new Set(laneOptions.map((lane) => lane.value)), [laneOptions]);
+
   // Cargar proveedores si es necesario
   useEffect(() => {
     if (includeProvider) {
@@ -76,7 +116,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       if (data.ok) {
         setProviders(data.data);
       }
-    } catch (error) {
+    } catch {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error al cargar proveedores');
       }
@@ -87,23 +127,12 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
 
   const handleCarrilChange = (value: string) => {
     setCarril(value);
-    
-    // Validar si es un carril válido
-    if (value) {
-      const match = value.match(/Carril (\d+)/);
-      if (match) {
-        const num = parseInt(match[1]);
-        if (num < 1 || num > 100) {
-          setCarrilError('El carril debe estar entre 1 y 100');
-        } else {
-          setCarrilError('');
-        }
-      } else {
-        setCarrilError('Formato inválido. Use "Carril [número]"');
-      }
-    } else {
+    if (!value || validLaneValues.has(value)) {
       setCarrilError('');
+      return;
     }
+
+    setCarrilError('Selecciona un carril valido');
   };
 
   const handleAddDefect = () => {
@@ -165,7 +194,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       }
 
       // Crear la unidad
-      const unitPayload: any = {
+      const unitPayload: UnitPayload = {
         vin,
         market: mercado,
         lane: carril,
@@ -193,30 +222,38 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       const unitData = await unitResponse.json();
       const unitId = unitData.data.id;
 
-      // Paso 2: Agregar cada defecto a la unidad
-      for (const defect of defects) {
-        const defectResponse = await fetch(`${API_BASE}/units/${unitId}/defects`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            defectType: defect.type,
-            zone: defect.zone,
-            grade: defect.grade,
-            registeredById: user.id,
-            description: `${defect.type} en ${defect.zone}`,
-          }),
-        });
+      // Paso 2: Agregar defectos en paralelo para reducir tiempo de reporte
+      const defectResults = await Promise.allSettled(
+        defects.map(async (defect) => {
+          const defectResponse = await fetch(`${API_BASE}/units/${unitId}/defects`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              defectType: defect.type,
+              zone: defect.zone,
+              grade: defect.grade,
+              registeredById: user.id,
+              description: `${defect.type} en ${defect.zone}`,
+            }),
+          });
 
-        if (!defectResponse.ok) {
-          // Error al agregar defecto
-        }
-      }
+          if (!defectResponse.ok) {
+            throw new Error('No se pudo registrar un defecto');
+          }
+        }),
+      );
+
+      const failedDefects = defectResults.filter((result) => result.status === 'rejected').length;
 
       // Éxito: Limpiar formulario
-      alert(`Unidad reportada exitosamente`);
+      if (failedDefects > 0) {
+        alert(`Unidad reportada con ${failedDefects} defecto(s) pendientes de reintento.`);
+      } else {
+        alert('Unidad reportada exitosamente');
+      }
       setVin('');
       setMercado('');
       setCarril('');
@@ -298,24 +335,14 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
             </div>
             <div>
               <label className="block text-lg font-normal mb-2 text-gray-800">Carril</label>
-              <input
-                list="lanes"
-                className={`w-full px-4 py-2 border-2 rounded-md focus:outline-none transition ${
-                  carrilError 
-                    ? 'border-red-500 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
-                    : 'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
-                }`}
+              <SearchableSelect
+                options={laneOptions}
                 value={carril}
-                onChange={(e) => handleCarrilChange(e.target.value)}
-                placeholder="Escribe o selecciona un carril (1-100)"
-                required
+                onChange={handleCarrilChange}
+                placeholder="Selecciona carril"
+                searchPlaceholder="Buscar carril"
+                className={carrilError ? 'ring-2 ring-red-200 rounded-lg' : ''}
               />
-              <datalist id="lanes">
-                {Array.from({ length: 100 }, (_, i) => {
-                  const lane = `Carril ${i + 1}`;
-                  return <option key={lane} value={lane} />;
-                })}
-              </datalist>
               {carrilError && (
                 <p className="text-red-600 text-sm mt-1">{carrilError}</p>
               )}
@@ -402,7 +429,7 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
               </svg>
               <p className="text-gray-500 font-medium mb-2">No hay defectos agregados</p>
-              <p className="text-gray-400 text-sm">Haz clic en "Agregar Defecto" para comenzar</p>
+              <p className="text-gray-400 text-sm">Haz clic en &quot;Agregar Defecto&quot; para comenzar</p>
             </div>
           )}
         </div>
@@ -458,34 +485,24 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold mb-2 text-gray-900">Tipo de Daño <span className="text-gray-400 font-normal">(AIAG)</span></label>
-            <select
+            <SearchableSelect
+              options={defectTypeOptions}
               value={newDefect.type || ''}
-              onChange={(e) => setNewDefect({ ...newDefect, type: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="">Selecciona...</option>
-              {damageTypes.map(dt => (
-                <option key={dt.code} value={`${dt.code} - ${dt.label}`}>
-                  {dt.code} – {dt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setNewDefect({ ...newDefect, type: value })}
+              placeholder="Selecciona tipo de dano"
+              searchPlaceholder="Buscar tipo de dano"
+            />
           </div>
 
           <div>
             <label className="block text-sm font-semibold mb-2 text-gray-900">Zona del Daño <span className="text-gray-400 font-normal">(AIAG)</span></label>
-            <select
+            <SearchableSelect
+              options={zoneOptions}
               value={newDefect.zone || ''}
-              onChange={(e) => setNewDefect({ ...newDefect, zone: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="">Selecciona...</option>
-              {zones.map(z => (
-                <option key={z.code} value={`${z.code} - ${z.label}`}>
-                  {z.code} – {z.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setNewDefect({ ...newDefect, zone: value })}
+              placeholder="Selecciona zona"
+              searchPlaceholder="Buscar zona"
+            />
           </div>
 
           <div>

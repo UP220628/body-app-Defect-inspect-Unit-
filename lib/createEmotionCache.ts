@@ -1,10 +1,14 @@
-import createCache from '@emotion/cache';
+import createCache, { type EmotionCache } from '@emotion/cache';
+
+type WindowWithEmotionCache = Window & {
+  __MUI_EMOTION_CACHE__?: EmotionCache;
+};
 
 export default function createEmotionCache() {
   // On the client reuse a global cache to keep the same instance
   // between different client components and to use the insertion point.
   if (typeof window !== 'undefined') {
-    const w = window as any;
+    const w = window as WindowWithEmotionCache;
     if (!w.__MUI_EMOTION_CACHE__) {
       const el = document.querySelector('meta[name="emotion-insertion-point"]');
       const insertionPoint = el instanceof HTMLElement ? el : undefined;

@@ -46,8 +46,28 @@ interface TypeRow { type: string; grade: string; count: number; }
 interface PieEntry { name: string; value: number; color: string; }
 
 const RADIAN = Math.PI / 180;
-const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
-  if (percent < 0.05) return null;
+type PieLabelArgs = {
+  cx?: number;
+  cy?: number;
+  midAngle?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  percent?: number;
+};
+
+const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: PieLabelArgs) => {
+  if (
+    typeof cx !== 'number' ||
+    typeof cy !== 'number' ||
+    typeof midAngle !== 'number' ||
+    typeof innerRadius !== 'number' ||
+    typeof outerRadius !== 'number' ||
+    typeof percent !== 'number' ||
+    percent < 0.05
+  ) {
+    return null;
+  }
+
   const r = innerRadius + (outerRadius - innerRadius) * 0.55;
   const x = cx + r * Math.cos(-midAngle * RADIAN);
   const y = cy + r * Math.sin(-midAngle * RADIAN);

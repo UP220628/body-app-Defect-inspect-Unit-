@@ -43,6 +43,17 @@ type Unit = {
   priorityRank?: number;
 };
 
+type ReceivedUnitApi = {
+  id: number;
+  vin: string;
+  market: string;
+  lane: string;
+  createdAt: string;
+  defects?: Defect[];
+  priorityNote?: string | null;
+  priorityRank?: number | null;
+};
+
 export default function Page() {
   const { user, token } = useAuth();
   const [units, setUnits] = useState<Unit[]>([]);
@@ -65,7 +76,7 @@ export default function Page() {
         const j = await r.json();
         if (j?.ok) {
           const results: Unit[] = [];
-          for (const u of j.data as any[]) {
+          for (const u of j.data as ReceivedUnitApi[]) {
             results.push({
               id: u.id,
               vin: u.vin,

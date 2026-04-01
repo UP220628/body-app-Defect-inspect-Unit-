@@ -35,12 +35,15 @@ interface ParetoChartProps {
 
 import { API_BASE } from '@/lib/api';
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+type TooltipEntry = { name: string; value: number; color: string };
+type CustomTooltipProps = { active?: boolean; payload?: TooltipEntry[]; label?: string };
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white border border-gray-200 rounded-lg shadow-md p-3 text-xs">
         <p className="font-semibold text-gray-800 mb-1">{label}</p>
-        {payload.map((entry: any) => (
+        {payload.map((entry) => (
           <p key={entry.name} style={{ color: entry.color }}>
             {entry.name === '% Acumulado'
               ? `${entry.name}: ${entry.value.toFixed(1)}%`

@@ -10,6 +10,7 @@ import { GradeBadge } from '@/components/units/GradeBadge';
 import { StatusBadge } from '@/components/units/StatusBadge';
 import { Badge } from '@/components/ui/Badge';
 import { ReportForm } from '@/components/forms/ReportForm';
+import { SearchableSelect, type SearchableOption } from '@/components/ui/SearchableSelect';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
@@ -44,6 +45,7 @@ export default function Page() {
   const { user, token } = useAuth();
   const [allUnits, setAllUnits] = useState<Unit[]>([]);
   const [selected, setSelected] = useState<Unit | null>(null);
+  const [isAddDefectFormOpen, setIsAddDefectFormOpen] = useState(false);
   const [newDefect, setNewDefect] = useState({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' as 'V1'|'V2'|'V3' });
   const [editingDefect, setEditingDefect] = useState<Defect | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,23 +59,53 @@ export default function Page() {
   const sentUnits = useMemo(() => allUnits.filter(u => u.statusName === 'SENT' || u.statusName === 'REJECTED'), [allUnits]);
   const releasedUnits = useMemo(() => allUnits.filter(u => u.statusName === 'RELEASED' || u.statusName === 'WTY_RELEASED'), [allUnits]);
 
+  const defectTypeOptions = useMemo<SearchableOption[]>(() => defectTypes.map((item) => {
+    const { code, label } = splitCatalogValue(item);
+    return {
+      value: item,
+      label: item,
+      searchText: `${code} ${label}`,
+    };
+  }), []);
+
+  const zoneOptions = useMemo<SearchableOption[]>(() => zones.map((item) => {
+    const { code, label } = splitCatalogValue(item);
+    return {
+      value: item,
+      label: item,
+      searchText: `${code} ${label}`,
+    };
+  }), []);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const statuses = ['REPORTED', 'SENT', 'RELEASED', 'WTY_RELEASED', 'REJECTED'];
-      const results: Unit[] = [];
-      for (const st of statuses) {
-        const r = await fetch(`${API_BASE}/units?status=${st}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        });
-        const data = await r.json();
-        if (data?.ok && Array.isArray(data.data)) {
-          results.push(...data.data);
+      const statusResponses = await Promise.all(
+        statuses.map(async (status) => {
+          const response = await fetch(`${API_BASE}/units?status=${status}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          });
+
+          if (!response.ok) {
+            return [] as Unit[];
+          }
+
+          const payload = await response.json();
+          return payload?.ok && Array.isArray(payload.data) ? (payload.data as Unit[]) : [];
+        }),
+      );
+
+      const byUnitId = new Map<number, Unit>();
+      for (const unitsByStatus of statusResponses) {
+        for (const unit of unitsByStatus) {
+          byUnitId.set(unit.id, unit);
         }
       }
-      setAllUnits(results);
+
+      setAllUnits(Array.from(byUnitId.values()));
       setLastUpdate(new Date());
-    } catch (err) {
+    } catch {
       // Error cargando unidades
     } finally {
       setLoading(false);
@@ -89,6 +121,7 @@ export default function Page() {
 
   const openInspect = (unit: Unit) => {
     setSelected(unit);
+    setIsAddDefectFormOpen(false);
   };
 
   const handleAddDefect = async () => {
@@ -106,7 +139,7 @@ export default function Page() {
         setSelected(updatedUnit);
         setNewDefect({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
       }
-    } catch (err) { /* Error */ }
+    } catch { /* Error */ }
   };
 
   const handleEditDefect = async (defectId: number, newGrade: 'V1'|'V2'|'V3') => {
@@ -124,12 +157,12 @@ export default function Page() {
         setSelected(updatedUnit);
         setEditingDefect(null);
       }
-    } catch (err) { /* Error */ }
+    } catch { /* Error */ }
   };
 
   const hasV1V2 = (unit: Unit) => (unit.defects||[]).some(d => d.grade === 'V1' || d.grade === 'V2');
 
-  const updateStatus = async (unitId: number, newStatus: string, extraBody?: Record<string, any>) => {
+  const updateStatus = async (unitId: number, newStatus: string, extraBody?: Record<string, unknown>) => {
     if (!user) return;
     setLoading(true);
     try {
@@ -142,6 +175,7 @@ export default function Page() {
       if (json?.ok) {
         setAllUnits(prev => prev.filter(u => u.id !== unitId));
         setSelected(null);
+        setIsAddDefectFormOpen(false);
         window.dispatchEvent(new CustomEvent('unitStatusChanged'));
       }
     } finally {
@@ -288,8 +322,8 @@ export default function Page() {
                       <TableCell align="right">
                         {activeTab === 'nivelacion' && (
                           <Button size="sm" onClick={() => openInspect(u)} className="bg-blue-600 hover:bg-blue-700 text-xs md:text-sm px-2 md:px-3 py-1 md:py-2">
-                            <span className="hidden sm:inline">Asignar defectos</span>
-                            <span className="sm:hidden">Asignar</span>
+                            <span className="hidden sm:inline">Nivelación</span>
+                            <span className="sm:hidden">Nivelar</span>
                           </Button>
                         )}
                         {activeTab === 'entregar' && (
@@ -328,14 +362,14 @@ export default function Page() {
       {/* Modal - Asignar defectos y decidir acción (solo tab nivelación) */}
       <Modal
         isOpen={!!selected}
-        onClose={() => setSelected(null)}
+        onClose={() => {
+          setSelected(null);
+          setIsAddDefectFormOpen(false);
+        }}
         title={`Inspeccionar: ${selected?.vin ?? ''}`}
         size="lg"
         footer={
-          <div className="flex gap-3 justify-between items-center">
-            <Button onClick={() => setSelected(null)} variant="secondary" size="sm" className="text-xs md:text-sm px-3 md:px-4 py-1.5 md:py-2">
-              Cancelar
-            </Button>
+          <div className="flex gap-3 justify-end items-center">
             <div className="flex gap-2">
               {(selected?.defects||[]).length > 0 && (
                 <>
@@ -364,7 +398,12 @@ export default function Page() {
                         <span className="sm:hidden">Body</span>
                       </Button>
                       <Button
-                        onClick={() => { setSelected(null); setWtyUnit(selected!); setWtyComment(''); }}
+                        onClick={() => {
+                          setSelected(null);
+                          setIsAddDefectFormOpen(false);
+                          setWtyUnit(selected!);
+                          setWtyComment('');
+                        }}
                         size="sm"
                         className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-medium shadow-sm transition-all text-xs md:text-sm px-2 md:px-3 py-1.5 md:py-2"
                         disabled={loading}
@@ -400,6 +439,13 @@ export default function Page() {
             <div>
               <div className="flex items-center justify-between mb-2 sm:mb-3">
                 <h3 className="font-semibold text-sm sm:text-base text-gray-900">Defectos Asignados ({(selected.defects||[]).length})</h3>
+                <Button
+                  size="sm"
+                  onClick={() => setIsAddDefectFormOpen((prev) => !prev)}
+                  className="text-xs sm:text-sm bg-blue-600 hover:bg-blue-700"
+                >
+                  {isAddDefectFormOpen ? 'Ocultar formulario' : 'Agregar Defecto'}
+                </Button>
               </div>
               {(selected.defects||[]).length > 0 ? (
                 <div className="space-y-2 p-2 sm:p-4 bg-gray-50 rounded-lg max-h-40 overflow-y-auto">
@@ -429,60 +475,58 @@ export default function Page() {
               )}
             </div>
 
-            <div className="border-t pt-3 sm:pt-4">
-              <h3 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base text-gray-900">Agregar Defecto</h3>
-              <div className="space-y-2 sm:space-y-3 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Tipo de Defecto</label>
-                  <select 
-                    value={newDefect.type} 
-                    onChange={(e) => setNewDefect({...newDefect, type: e.target.value})}
-                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {defectTypes.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Zona</label>
-                  <select 
-                    value={newDefect.zone} 
-                    onChange={(e) => setNewDefect({...newDefect, zone: e.target.value})}
-                    className="w-full px-2 sm:px-3 py-1.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {zones.map(z => (
-                      <option key={z} value={z}>{z}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Severidad</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {grades.map(g => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => setNewDefect({...newDefect, grade: g})}
-                        className={`py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm transition-all shadow-md ${
-                          newDefect.grade === g
-                            ? g === 'V1' ? 'bg-red-500 text-white border-2 border-red-600 shadow-lg scale-105' : g === 'V2' ? 'bg-amber-500 text-white border-2 border-amber-600 shadow-lg scale-105' : 'bg-blue-500 text-white border-2 border-blue-600 shadow-lg scale-105'
-                            : 'bg-gray-200 text-gray-700 border-2 border-gray-300 hover:bg-gray-300'
-                        }`}
-                      >
-                        {g}
-                      </button>
-                    ))}
+            {isAddDefectFormOpen && (
+              <div className="border-t pt-3 sm:pt-4">
+                <h3 className="font-semibold mb-2 sm:mb-3 text-sm sm:text-base text-gray-900">Agregar Defecto</h3>
+                <div className="space-y-2 sm:space-y-3 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Tipo de Defecto</label>
+                    <SearchableSelect
+                      options={defectTypeOptions}
+                      value={newDefect.type}
+                      onChange={(value) => setNewDefect({ ...newDefect, type: value })}
+                      searchPlaceholder="Buscar por codigo o descripcion"
+                      placeholder="Selecciona tipo de defecto"
+                    />
                   </div>
-                  <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2/V3=Leve/Moderado (Body o solicitar validación WTY para liberar directo)</p>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Zona</label>
+                    <SearchableSelect
+                      options={zoneOptions}
+                      value={newDefect.zone}
+                      onChange={(value) => setNewDefect({ ...newDefect, zone: value })}
+                      searchPlaceholder="Buscar por codigo o descripcion"
+                      placeholder="Selecciona zona"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Severidad</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {grades.map(g => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setNewDefect({...newDefect, grade: g})}
+                          className={`py-2 sm:py-3 rounded-lg font-bold text-xs sm:text-sm transition-all shadow-md ${
+                            newDefect.grade === g
+                              ? g === 'V1' ? 'bg-red-500 text-white border-2 border-red-600 shadow-lg scale-105' : g === 'V2' ? 'bg-amber-500 text-white border-2 border-amber-600 shadow-lg scale-105' : 'bg-blue-500 text-white border-2 border-blue-600 shadow-lg scale-105'
+                              : 'bg-gray-200 text-gray-700 border-2 border-gray-300 hover:bg-gray-300'
+                          }`}
+                        >
+                          {g}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2/V3=Leve/Moderado (Body o solicitar validación WTY para liberar directo)</p>
+                  </div>
+                  <Button onClick={handleAddDefect} className="w-full px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md transition-all rounded-lg">
+                    +{' '}
+                    <span className="hidden sm:inline">Agregar Defecto</span>
+                    <span className="sm:hidden">Agregar</span>
+                  </Button>
                 </div>
-                <Button onClick={handleAddDefect} className="w-full px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md transition-all rounded-lg">
-                  +{' '}
-                  <span className="hidden sm:inline">Agregar Defecto</span>
-                  <span className="sm:hidden">Agregar</span>
-                </Button>
               </div>
-            </div>
+            )}
           </div>
         )}
       </Modal>

@@ -1,7 +1,7 @@
 'use client';
 
 import {Header} from "@/components/layout/Header";
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { DefectCounters } from "@/components/dashboards/DefectCounters";
@@ -14,15 +14,18 @@ import { useUnitEvents } from "@/lib/useUnitEvents";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { API_BASE } from '@/lib/api';
 
+type WeeklyRow = { date: string; provider: string; count: number };
+type MonthlyRow = { date: string; count: number };
+type ProviderTotal = { provider: string; count: number };
+type WeeklyChartRow = { date: string; fullDate: string; [key: string]: string | number };
+
 export default function Page (){
   const { token } = useAuth();
   const [filterMode, setFilterMode] = useState<'today' | 'all'>('today');
-  const [weeklyData, setWeeklyData] = useState<any[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [statusStats, setStatusStats] = useState<any>({});
-  const [providerStats, setProviderStats] = useState<any[]>([]);
-  
-  const today = new Date();
+  const [weeklyData, setWeeklyData] = useState<WeeklyRow[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyRow[]>([]);
+  const [statusStats, setStatusStats] = useState<Record<string, number>>({});
+  const [providerStats, setProviderStats] = useState<ProviderTotal[]>([]);
 
   const formatChartDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -40,10 +43,10 @@ export default function Page (){
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      if (data?.ok) {
-        setWeeklyData(data.data);
+      if (data?.ok && Array.isArray(data.data)) {
+        setWeeklyData(data.data as WeeklyRow[]);
       }
-    } catch (error) {
+    } catch {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error loading weekly data');
       }
@@ -56,10 +59,10 @@ export default function Page (){
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      if (data?.ok) {
-        setMonthlyData(data.data);
+      if (data?.ok && Array.isArray(data.data)) {
+        setMonthlyData(data.data as MonthlyRow[]);
       }
-    } catch (error) {
+    } catch {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error loading monthly data');
       }
@@ -75,7 +78,7 @@ export default function Page (){
       if (data?.ok) {
         setStatusStats(data.data || {});
       }
-    } catch (error) {
+    } catch {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error loading status stats');
       }
@@ -88,10 +91,10 @@ export default function Page (){
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
-      if (data?.ok) {
+      if (data?.ok && Array.isArray(data.data)) {
         // Agrupar por proveedor y sumar totales
         const providerMap = new Map<string, number>();
-        data.data.forEach((item: any) => {
+        (data.data as WeeklyRow[]).forEach((item) => {
           // Filtrar "sin proveedor" o valores vacíos
           if (item.provider && item.provider.toLowerCase() !== 'sin proveedor') {
             const current = providerMap.get(item.provider) || 0;
@@ -104,7 +107,7 @@ export default function Page (){
           .slice(0, 5);
         setProviderStats(sorted);
       }
-    } catch (error) {
+    } catch {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error loading provider stats');
       }
@@ -123,15 +126,18 @@ export default function Page (){
 
   useEffect(() => {
     if (!token) return;
-    loadWeeklyData();
-    loadMonthlyData();
-    loadStatusStats();
-    loadProviderStats();
+    const timeoutId = window.setTimeout(() => {
+      void loadWeeklyData();
+      void loadMonthlyData();
+      void loadStatusStats();
+      void loadProviderStats();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [token, loadWeeklyData, loadMonthlyData, loadStatusStats, loadProviderStats]);
 
   // Agrupar datos semanales por proveedor y fecha
   const weeklyChartData = (() => {
-    const dateMap = new Map<string, any>();
+    const dateMap = new Map<string, WeeklyChartRow>();
     
     weeklyData.forEach(item => {
       // Filtrar "sin proveedor" o valores vacíos
@@ -143,7 +149,9 @@ export default function Page (){
           });
         }
         const entry = dateMap.get(item.date);
-        entry[item.provider] = item.count;
+        if (entry) {
+          entry[item.provider] = item.count;
+        }
       }
     });
 
@@ -156,7 +164,7 @@ export default function Page (){
   const providerColors = ['#60a5fa', '#34d399', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   // Formatear datos mensuales
-  const monthlyChartData = monthlyData.map(item => ({
+  const monthlyChartData = monthlyData.map((item) => ({
     date: formatChartDate(item.date),
     unidades: item.count
   }));

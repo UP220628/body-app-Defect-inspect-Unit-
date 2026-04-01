@@ -30,12 +30,49 @@ const statusToSpanish: Record<string, string> = {
   UNAVAILABLE: 'No disponible',
 };
 
+type HistoryUnit = {
+  unitId: number;
+  vin: string;
+  market: string;
+  lane: string;
+  registeredByName?: string;
+  states: Record<string, string | undefined>;
+  notes: Array<{ status: string; note: string; timestamp: string }>;
+};
+
+type LogItem = {
+  unitId: number;
+  vin: string;
+  market: string;
+  lane: string;
+  registeredByName?: string;
+  newStatus?: string;
+  changedAt?: string;
+  note?: string;
+};
+
+type UnitDefectDetail = {
+  id?: number;
+  type: string;
+  zone: string;
+  grade: string;
+  isResolved?: boolean;
+};
+
+type UnitDefectsModalData = {
+  vin: string;
+  market: string;
+  lane: string;
+  statusName?: string;
+  defects: UnitDefectDetail[];
+};
+
 
 export default function Page (){
   const { token, user } = useAuth();
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<LogItem[]>([]);
   const [vin, setVin] = useState('');
-  const [market, setMarket] = useState('');
+  const [market] = useState('');
   const [sort, setSort] = useState<'alpha'|'date'>('date');
   const [order, setOrder] = useState<'asc'|'desc'>('desc');
   const [startDate, setStartDate] = useState('');
@@ -44,7 +81,7 @@ export default function Page (){
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const [selectedUnitNotes, setSelectedUnitNotes] = useState<any>(null);
+  const [selectedUnitNotes, setSelectedUnitNotes] = useState<HistoryUnit | null>(null);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
 
   // Plant tabs
@@ -54,9 +91,13 @@ export default function Page (){
   const [plantTab, setPlantTab] = useState<string>(userPlant);
 
   // Defects modal
-  const [selectedUnitDefects, setSelectedUnitDefects] = useState<any>(null);
+  const [selectedUnitDefects, setSelectedUnitDefects] = useState<UnitDefectsModalData | null>(null);
   const [isDefectsModalOpen, setIsDefectsModalOpen] = useState(false);
   const [loadingDefects, setLoadingDefects] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState<HistoryUnit | null>(null);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const isAdminOrScm = user?.roleId === ROLES.ADMIN || user?.roleId === ROLES.SCM;
 
   const todayStr = () => {
     const d = new Date();
@@ -102,7 +143,7 @@ export default function Page (){
         }
       })
       .catch(() => {});
-  }, [query, token, API_BASE]);
+  }, [query, token]);
 
   useUnitEvents({
     token,
@@ -121,7 +162,7 @@ export default function Page (){
   }, [query, pageSize, plantTab]);
 
   const groupedUnits = useMemo(() => {
-    const grouped = items.reduce((acc: any, row: any) => {
+    const grouped = items.reduce<Record<number, HistoryUnit>>((acc, row) => {
       if (!acc[row.unitId]) {
         acc[row.unitId] = {
           unitId: row.unitId,
@@ -135,7 +176,7 @@ export default function Page (){
       }
       if (row.newStatus) {
         acc[row.unitId].states[row.newStatus] = row.changedAt;
-        if (row.note) {
+        if (row.note && row.changedAt) {
           acc[row.unitId].notes.push({
             status: row.newStatus,
             note: row.note,
@@ -146,11 +187,11 @@ export default function Page (){
       return acc;
     }, {});
 
-    return Object.values(grouped) as any[];
+    return Object.values(grouped);
   }, [items]);
 
   const sortedUnits = useMemo(() => {
-    return [...groupedUnits].sort((a: any, b: any) => {
+    return [...groupedUnits].sort((a, b) => {
       if (sort === 'alpha') {
         const comparison = a.vin.localeCompare(b.vin);
         return order === 'asc' ? comparison : -comparison;
@@ -168,12 +209,12 @@ export default function Page (){
     return sortedUnits.slice(startIndex, startIndex + pageSize);
   }, [sortedUnits, page, pageSize]);
 
-  const handleViewNotes = (unit: any) => {
+  const handleViewNotes = (unit: HistoryUnit) => {
     setSelectedUnitNotes(unit);
     setIsNotesModalOpen(true);
   };
 
-  const handleViewDefects = async (unit: any) => {
+  const handleViewDefects = async (unit: HistoryUnit) => {
     if (!token) return;
     setLoadingDefects(true);
     setSelectedUnitDefects({ vin: unit.vin, market: unit.market, lane: unit.lane, defects: [] });
@@ -199,6 +240,38 @@ export default function Page (){
     }
   };
 
+  const handleOpenArchive = (unit: HistoryUnit) => {
+    setArchiveTarget(unit);
+    setIsArchiveModalOpen(true);
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!archiveTarget || !token) return;
+    setIsArchiving(true);
+    try {
+      const response = await fetch(`${API_BASE}/units/${archiveTarget.unitId}/archive`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error || 'No se pudo archivar la unidad');
+      }
+
+      setIsArchiveModalOpen(false);
+      setArchiveTarget(null);
+      fetchLogs();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al archivar unidad';
+      alert(message);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   const handleExportToExcel = () => {
     if (!token) return;
     
@@ -221,7 +294,7 @@ export default function Page (){
         a.remove();
         window.URL.revokeObjectURL(downloadUrl);
       })
-      .catch((err) => {
+      .catch(() => {
         if (process.env.NODE_ENV !== 'production') {
           console.error('Error al exportar');
         }
@@ -385,12 +458,14 @@ export default function Page (){
                     <TableHeadCell className="px-3 py-2 text-[11px]">Liberada WWS (WWS)</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Aceptada (Carrier)</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Rechazada (Carrier)</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Archivada</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Registrado por</TableHeadCell>
                     <TableHeadCell className="px-3 py-2 text-[11px]">Notas</TableHeadCell>
+                    <TableHeadCell className="px-3 py-2 text-[11px]">Acciones</TableHeadCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedUnits.map((unit: any) => (
+                  {paginatedUnits.map((unit) => (
                     <TableRow key={unit.unitId}>
                       <TableCell className="px-3 py-2 text-xs whitespace-nowrap">
                         <button
@@ -413,6 +488,7 @@ export default function Page (){
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.WWS_RELEASED)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.ACCEPTED)}</TableCell>
                       <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.REJECTED)}</TableCell>
+                      <TableCell className="px-3 py-2 text-[11px]">{formatTime(unit.states.ARCHIVED)}</TableCell>
                       <TableCell className="px-3 py-2 text-xs">{unit.registeredByName}</TableCell>
                       <TableCell className="px-3 py-2 text-xs">
                         {(() => {
@@ -428,6 +504,20 @@ export default function Page (){
                             <span className="text-gray-400">-</span>
                           );
                         })()}
+                      </TableCell>
+                      <TableCell className="px-3 py-2 text-xs">
+                        {isAdminOrScm && !unit.states.ARCHIVED ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleOpenArchive(unit)}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700"
+                          >
+                            Archivar
+                          </Button>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
                       </TableCell>
 
                     </TableRow>
@@ -513,7 +603,7 @@ export default function Page (){
                 <h3 className="font-semibold text-gray-900 mb-3">Historial de Notas</h3>
                 {selectedUnitNotes.notes && selectedUnitNotes.notes.length > 0 ? (
                   <div className="space-y-3">
-                    {selectedUnitNotes.notes.map((noteItem: any, idx: number) => {
+                    {selectedUnitNotes.notes.map((noteItem, idx: number) => {
                       const statusLabel = statusToSpanish[noteItem.status] || noteItem.status;
                       return (
                       <div 
@@ -590,7 +680,7 @@ export default function Page (){
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedUnitDefects.defects.map((defect: any, idx: number) => (
+                      {selectedUnitDefects.defects.map((defect, idx: number) => (
                         <TableRow key={defect.id || idx}>
                           <TableCell className="px-3 py-2 text-sm font-medium">{defect.type}</TableCell>
                           <TableCell className="px-3 py-2 text-sm">{defect.zone}</TableCell>
@@ -633,6 +723,49 @@ export default function Page (){
               )}
             </div>
           )}
+        </Modal>
+
+        <Modal
+          isOpen={isArchiveModalOpen}
+          onClose={() => {
+            if (isArchiving) return;
+            setIsArchiveModalOpen(false);
+            setArchiveTarget(null);
+          }}
+          title="Confirmar archivado"
+          size="md"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-700">
+              Esta acción moverá la unidad fuera del flujo operativo diario. Solo permanecerá visible en historial.
+            </p>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm">
+              <p><span className="font-semibold">VIN:</span> {archiveTarget?.vin || '-'}</p>
+              <p><span className="font-semibold">Mercado:</span> {archiveTarget?.market || '-'}</p>
+              <p><span className="font-semibold">Carril:</span> {archiveTarget?.lane || '-'}</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  setIsArchiveModalOpen(false);
+                  setArchiveTarget(null);
+                }}
+                disabled={isArchiving}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleConfirmArchive}
+                disabled={isArchiving}
+                className="bg-gray-800 hover:bg-gray-900 text-white"
+              >
+                {isArchiving ? 'Archivando...' : 'Confirmar archivado'}
+              </Button>
+            </div>
+          </div>
         </Modal>
       </main>
     </div>

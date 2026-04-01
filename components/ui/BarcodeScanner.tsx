@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Button } from './Button';
 import { Modal } from './Modal';
@@ -14,31 +14,21 @@ interface BarcodeScannerProps {
 
 export const BarcodeScanner = ({ isOpen, onClose, onScan, title = 'Escanear Código de Barras' }: BarcodeScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader>(new BrowserMultiFormatReader());
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [codeReader, setCodeReader] = useState<BrowserMultiFormatReader | null>(null);
 
-  useEffect(() => {
-    if (isOpen && !codeReader) {
-      const reader = new BrowserMultiFormatReader();
-      setCodeReader(reader);
-    }
-  }, [isOpen, codeReader]);
+  const handleClose = useCallback(() => {
+    codeReaderRef.current.reset();
+    setIsScanning(false);
+    setError(null);
+    onClose();
+  }, [onClose]);
 
-  useEffect(() => {
-    if (isOpen && codeReader && videoRef.current && !isScanning) {
-      startScanning();
-    }
+  const startScanning = useCallback(async () => {
+    if (!videoRef.current || isScanning) return;
 
-    return () => {
-      if (codeReader) {
-        codeReader.reset();
-      }
-    };
-  }, [isOpen, codeReader]);
-
-  const startScanning = async () => {
-    if (!codeReader || !videoRef.current || isScanning) return;
+    const codeReader = codeReaderRef.current;
 
     setIsScanning(true);
     setError(null);
@@ -90,23 +80,31 @@ export const BarcodeScanner = ({ isOpen, onClose, onScan, title = 'Escanear Cód
           }
         }
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error al iniciar el escáner');
       }
-      setError(err.message || 'Error al acceder a la cámara');
+      const errorMessage = err instanceof Error ? err.message : 'Error al acceder a la cámara';
+      setError(errorMessage);
       setIsScanning(false);
     }
-  };
+  }, [handleClose, isScanning, onScan]);
 
-  const handleClose = () => {
-    if (codeReader) {
-      codeReader.reset();
+  useEffect(() => {
+    let timeoutId: number | null = null;
+    if (isOpen && videoRef.current && !isScanning) {
+      timeoutId = window.setTimeout(() => {
+        void startScanning();
+      }, 0);
     }
-    setIsScanning(false);
-    setError(null);
-    onClose();
-  };
+
+    return () => {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      codeReaderRef.current.reset();
+    };
+  }, [isOpen, isScanning, startScanning]);
 
   return (
     <Modal
