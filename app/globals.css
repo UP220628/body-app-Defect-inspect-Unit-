@@ -19,3 +19,87 @@ body {
   color: var(--color-foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.tow-loader {
+  --tow-truck-size: 150px;
+  --tow-loader-duration: 2.05s;
+  --tow-runway-width: 62%;
+  width: min(100%, 280px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.tow-loader-compact {
+  width: 78px;
+  gap: 0.25rem;
+}
+
+.tow-loader-compact .tow-loader-runway {
+  min-height: calc(var(--tow-truck-size) * 0.26);
+}
+
+.tow-loader-compact .tow-loader-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tow-loader-runway {
+  position: relative;
+  width: var(--tow-runway-width);
+  margin-inline: auto;
+  min-height: calc(var(--tow-truck-size) * 0.44);
+  overflow: hidden;
+}
+
+.tow-loader-vehicle {
+  position: absolute;
+  bottom: 0;
+  left: calc(-1 * var(--tow-truck-size));
+  width: var(--tow-truck-size);
+  height: auto;
+  animation: tow-loader-drive var(--tow-loader-duration) linear infinite;
+  will-change: left;
+}
+
+.tow-loader-wheel {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tow-loader-wheel 0.75s linear infinite;
+}
+
+.tow-loader-label {
+  margin: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+@keyframes tow-loader-drive {
+  from {
+    left: calc(-1 * var(--tow-truck-size));
+  }
+
+  to {
+    left: 100%;
+  }
+}
+
+@keyframes tow-loader-wheel {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tow-loader-vehicle,
+  .tow-loader-wheel {
+    animation: none;
+  }
+}

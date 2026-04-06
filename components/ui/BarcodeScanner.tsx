@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 import { Button } from './Button';
 import { Modal } from './Modal';
+import { TowTruckLoader } from './TowTruckLoader';
 
 interface BarcodeScannerProps {
   isOpen: boolean;
@@ -139,11 +140,13 @@ export const BarcodeScanner = ({ isOpen, onClose, onScan, title = 'Escanear Cód
 
           {/* Estado de carga */}
           {!isScanning && !error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75">
-              <div className="text-white text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                <p>Iniciando cámara...</p>
-              </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 px-4">
+              <TowTruckLoader
+                label="Loading camera..."
+                size="sm"
+                className="w-full max-w-xs"
+                dark
+              />
             </div>
           )}
 

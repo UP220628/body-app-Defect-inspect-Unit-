@@ -15,6 +15,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import { TowTruckLoader } from '@/components/ui/TowTruckLoader';
 
 interface DefectStats {
   v1: number;
@@ -112,8 +113,8 @@ export const ParetoChart = ({ filterMode }: ParetoChartProps) => {
   return (
     <div className="w-full h-full">
       {loading ? (
-        <div className="flex items-center justify-center h-full min-h-[220px] text-gray-400 text-sm">
-          Cargando...
+        <div className="flex items-center justify-center h-full min-h-[220px] px-3">
+          <TowTruckLoader label="Loading..." size="md" className="w-full max-w-xs" />
         </div>
       ) : total === 0 ? (
         <div className="flex items-center justify-center h-full min-h-[220px] text-gray-400 text-sm">

@@ -11,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { TowTruckLoader } from '@/components/ui/TowTruckLoader';
 import { API_BASE } from '@/lib/api';
 
 /** Extracts the short keyword from a defect catalog name.
@@ -245,7 +246,9 @@ export const ResumenPanel = ({ filterMode }: { filterMode: 'today' | 'all' }) =>
       <GradeChips />
 
       {loading ? (
-        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-8">Cargando...</div>
+        <div className="flex-1 flex items-center justify-center py-6 px-3">
+          <TowTruckLoader label="Loading..." size="md" className="w-full max-w-xs" />
+        </div>
       ) : (
         <>
           {/* ══ DEFECTOS ══ */}

@@ -7,6 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableCell, TableHeadCell } fro
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { TowTruckLoader } from '@/components/ui/TowTruckLoader';
 import ProtectedRoute from '@/components/layout/ProtectedRoute';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
@@ -663,9 +664,12 @@ export default function Page (){
               </div>
 
               {loadingDefects ? (
-                <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
-                  <span className="ml-3 text-gray-500 text-sm">Cargando defectos...</span>
+                <div className="flex items-center justify-center py-8">
+                  <TowTruckLoader
+                    label="Loading defects..."
+                    size="sm"
+                    className="w-full max-w-xs"
+                  />
                 </div>
               ) : selectedUnitDefects.defects && selectedUnitDefects.defects.length > 0 ? (
                 <div>

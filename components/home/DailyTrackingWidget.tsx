@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { StatusBadge } from '@/components/units/StatusBadge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { TowTruckLoader } from '@/components/ui/TowTruckLoader';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
 import { API_BASE } from '@/lib/api';
@@ -502,7 +503,9 @@ export const DailyTrackingWidget = () => {
         </CardHeader>
         <CardBody>
           {loading ? (
-            <div className="text-center py-8 text-gray-500">Cargando...</div>
+            <div className="flex justify-center py-8">
+              <TowTruckLoader label="Loading..." size="md" className="w-full max-w-xs" />
+            </div>
           ) : units.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               No hay unidades registradas hoy

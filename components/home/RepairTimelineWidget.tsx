@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { TowTruckLoader } from '@/components/ui/TowTruckLoader';
 import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
 import { API_BASE } from '@/lib/api';
@@ -141,7 +142,9 @@ export const RepairTimelineWidget = () => {
           <p className="text-sm text-gray-600">Por proveedor</p>
         </CardHeader>
         <CardBody>
-          <p className="text-gray-600 text-center py-8">Cargando...</p>
+          <div className="flex justify-center py-8">
+            <TowTruckLoader label="Loading..." size="md" className="w-full max-w-xs" />
+          </div>
         </CardBody>
       </Card>
     );
