@@ -118,7 +118,6 @@ body-app/
     ├── images/                 # Logos e imágenes estáticas
     └── sounds/                 # Sonidos de notificación por tono (high/medium/low)
 ```
-
 ---
 
 ## Páginas y su función
