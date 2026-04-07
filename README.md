@@ -20,7 +20,10 @@ La app consume el backend usando `API_BASE` definido en `lib/api.ts`.
 Orden de resolución de `API_BASE`:
 1. `NEXT_PUBLIC_API_BASE_URL`
 2. `NEXT_PUBLIC_API_URL`
-3. `http://localhost:3001` (fallback)
+3. `http://localhost:3001` (solo en desarrollo)
+4. `''` (ruta relativa en producción si no hay variable)
+
+En producción se recomienda configurar explícitamente `NEXT_PUBLIC_API_BASE_URL` para evitar que el cliente use rutas relativas por omisión.
 
 ## Variables de entorno
 
@@ -29,7 +32,7 @@ No se versionan archivos de entorno de producción; esas variables deben configu
 
 | Variable | Requerida | Descripcion |
 |----------|-----------|-------------|
-| `NEXT_PUBLIC_API_BASE_URL` | Recomendada | URL base del backend (prioridad 1) |
+| `NEXT_PUBLIC_API_BASE_URL` | Sí (producción) | URL base pública del backend (prioridad 1) |
 | `NEXT_PUBLIC_API_URL` | Opcional | Fallback si no existe `NEXT_PUBLIC_API_BASE_URL` |
 
 Ejemplo para local:
