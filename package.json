@@ -5,9 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "type-check": "tsc --noEmit",
+    "build": "npm run type-check && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node -e \"console.log('No automated tests configured yet')\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

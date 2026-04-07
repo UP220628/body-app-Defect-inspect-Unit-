@@ -8,15 +8,36 @@ Aplicación web diseñada para dar visibilidad en la parte de planchas para madr
 
 ## Cómo correr
 
-```bash (Terminal)
+```bash
 npm install
 npm run dev       # desarrollo en http://localhost:3000
 npm run build     # build de producción
 npm start         # servidor de producción
 ```
 
-La app espera que el backend esté corriendo en el puerto configurado en `lib/api.ts` (`API_BASE`).
-Api Base usa el url del enviroment que se define en el archivo `.env`.
+La app consume el backend usando `API_BASE` definido en `lib/api.ts`.
+
+Orden de resolución de `API_BASE`:
+1. `NEXT_PUBLIC_API_BASE_URL`
+2. `NEXT_PUBLIC_API_URL`
+3. `http://localhost:3001` (fallback)
+
+## Variables de entorno
+
+Usar `body-app/.env.local` para entorno local y `body-app/.env.example` como plantilla versionada.
+No se versionan archivos de entorno de producción; esas variables deben configurarse en la plataforma de despliegue.
+
+| Variable | Requerida | Descripcion |
+|----------|-----------|-------------|
+| `NEXT_PUBLIC_API_BASE_URL` | Recomendada | URL base del backend (prioridad 1) |
+| `NEXT_PUBLIC_API_URL` | Opcional | Fallback si no existe `NEXT_PUBLIC_API_BASE_URL` |
+
+Ejemplo para local:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
 
 ---
 
@@ -32,12 +53,12 @@ body-app/
 │   │
 │   ├── home/                   # Panel principal (tracking del día)
 │   ├── reportar_unidad/        # Carrier reporta una unidad nueva
-│   ├── aceptar_unidades/       # Carrier acepta o rechaza unidades liberdas
+│   ├── aceptar_unidades/       # Carrier acepta o rechaza unidades liberadas
 │   ├── gestion_wws/            # WWS: nivelar, entregar a Body, liberar
 │   ├── recibir_unidades/       # Body recibe unidades entregadas
 │   ├── reparar_unidades/       # Body gestiona reparaciones e indisponibles
 │   ├── prioridad_reparaciones/ # SCM ordena la cola de reparación
-│   ├── validar_unidad/         # VQA valida unidades con solo defectos V2/V3
+│   ├── validar_unidad/         # WTY/SCM_QUALITY valida unidades con solo defectos V2/V3
 │   ├── dashboards/             # Gráficas y KPIs (Pareto, contadores, mensual)
 │   ├── logs/                   # Historial completo de todas las unidades
 │   ├── profile/                # Perfil del usuario autenticado
@@ -103,7 +124,7 @@ body-app/
 | Recibir Unidades | `/recibir_unidades` | Body | Confirma la recepción física de unidades entregadas por WWS |
 | Reparar Unidades | `/reparar_unidades` | Body | Inicia/libera reparaciones, marca unidades no disponibles, reactiva |
 | Prioridad | `/prioridad_reparaciones` | SCM | Drag & drop para ordenar la cola de reparación de Body |
-| Validar Unidad | `/validar_unidad` | VQA | Aprueba o rechaza unidades con solo defectos V2/V3 enviadas por WWS |
+| Validar Unidad | `/validar_unidad` | WTY / SCM_QUALITY | Aprueba o rechaza unidades con solo defectos V2/V3 enviadas por WWS |
 | Aceptar Unidades | `/aceptar_unidades` | Carrier | Acepta o rechaza unidades liberadas por WWS |
 | Dashboards | `/dashboards` | Todos | KPIs: Pareto de defectos, contadores V1/V2/V3, unidades por estado, mensual |
 | Logs | `/logs` | Todos | Historial completo con timestamps por estado, filtros y exportación a Excel |
@@ -116,9 +137,9 @@ body-app/
 ```
 REPORTED → SENT → DELIVERED → RECEIVED → IN_REPAIR → RELEASED → WWS_RELEASED → ACCEPTED
                      ↓                                                ↑
-                 VQA_PENDING ────────────────────────────────────────┘ (VQA aprueba)
+                 WTY_PENDING ────────────────────────────────────────┘ (WTY aprueba)
                      ↓
-                  SENT (VQA rechaza, regresa a Body)
+                  SENT (WTY rechaza, regresa a Body)
 
 RECEIVED → UNAVAILABLE  →  SCM toma decisión  →  ARCHIVED (soft delete)
 IN_REPAIR → UNAVAILABLE
