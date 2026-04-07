@@ -119,7 +119,6 @@ body-app/
     └── sounds/                 # Sonidos de notificación por tono (high/medium/low)
 ```
 ---
-
 ## Páginas y su función
 
 | Página | Ruta | Rol principal | Descripción |
