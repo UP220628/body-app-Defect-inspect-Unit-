@@ -28,7 +28,11 @@ En producción se recomienda configurar explícitamente `NEXT_PUBLIC_API_BASE_UR
 ## Variables de entorno
 
 Usar `body-app/.env.local` para entorno local y `body-app/.env.example` como plantilla versionada.
-No se versionan archivos de entorno de producción; esas variables deben configurarse en la plataforma de despliegue.
+Para producción hay dos opciones:
+1. Configurar variables en la plataforma de despliegue.
+2. Versionar `body-app/.env.production` cuando la plataforma no permite editar environments.
+
+Importante: en `body-app/.env.production` solo deben ir variables públicas (`NEXT_PUBLIC_*`). No guardar secretos.
 
 | Variable | Requerida | Descripcion |
 |----------|-----------|-------------|
