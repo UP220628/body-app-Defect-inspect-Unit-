@@ -18,6 +18,8 @@ interface Defect {
   type: string;
   zone: string;
   grade: Grade;
+  photoFile?: File;
+  photoPreview?: string;
 }
 
 interface Provider {
@@ -70,6 +72,69 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   const [newDefect, setNewDefect] = useState<Partial<Defect>>({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const uploadDefectPhoto = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/blob/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('No se pudo subir la foto del defecto');
+    }
+
+    const result = await response.json();
+    const uploadedUrl = result?.data?.url;
+
+    if (typeof uploadedUrl !== 'string' || uploadedUrl.length === 0) {
+      throw new Error('Respuesta inválida al subir la foto del defecto');
+    }
+
+    return uploadedUrl;
+  };
+
+  const cleanupUploadedPhotos = async (urls: string[]) => {
+    if (urls.length === 0) {
+      return;
+    }
+
+    try {
+      await fetch('/api/blob/cleanup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ urls }),
+      });
+    } catch {
+      // Best-effort cleanup for failed defect creation.
+    }
+  };
+
+  const resetNewDefect = () => {
+    if (newDefect.photoPreview) {
+      URL.revokeObjectURL(newDefect.photoPreview);
+    }
+
+    setNewDefect({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
+  };
+
+  const handleDefectPhotoChange = (file: File | null) => {
+    if (newDefect.photoPreview) {
+      URL.revokeObjectURL(newDefect.photoPreview);
+    }
+
+    if (!file) {
+      setNewDefect((prev) => ({ ...prev, photoFile: undefined, photoPreview: undefined }));
+      return;
+    }
+
+    const photoPreview = URL.createObjectURL(file);
+    setNewDefect((prev) => ({ ...prev, photoFile: file, photoPreview }));
+  };
 
   const defectTypeOptions = useMemo<SearchableOption[]>(
     () => damageTypes.map((damageType) => ({
@@ -145,6 +210,10 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
   };
 
   const handleRemoveDefect = (id: number) => {
+    const defectToRemove = defects.find((defect) => defect.id === id);
+    if (defectToRemove?.photoPreview) {
+      URL.revokeObjectURL(defectToRemove.photoPreview);
+    }
     setDefects(defects.filter(d => d.id !== id));
   };
 
@@ -223,9 +292,15 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       const unitData = await unitResponse.json();
       const unitId = unitData.data.id;
 
-      // Paso 2: Agregar defectos en paralelo para reducir tiempo de reporte
-      const defectResults = await Promise.allSettled(
-        defects.map(async (defect) => {
+      let failedDefects = 0;
+      for (const defect of defects) {
+        let uploadedUrl: string | null = null;
+
+        try {
+          if (defect.photoFile) {
+            uploadedUrl = await uploadDefectPhoto(defect.photoFile);
+          }
+
           const defectResponse = await fetch(`${API_BASE}/units/${unitId}/defects`, {
             method: 'POST',
             headers: {
@@ -238,16 +313,20 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
               grade: defect.grade,
               registeredById: user.id,
               description: `${defect.type} en ${defect.zone}`,
+              photoUrls: uploadedUrl ? [uploadedUrl] : [],
             }),
           });
 
           if (!defectResponse.ok) {
             throw new Error('No se pudo registrar un defecto');
           }
-        }),
-      );
-
-      const failedDefects = defectResults.filter((result) => result.status === 'rejected').length;
+        } catch {
+          failedDefects += 1;
+          if (uploadedUrl) {
+            await cleanupUploadedPhotos([uploadedUrl]);
+          }
+        }
+      }
 
       // Éxito: Limpiar formulario
       if (failedDefects > 0) {
@@ -260,6 +339,11 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       setCarril('');
       setCarrilError('');
       setProviderId(null);
+      defects.forEach((defect) => {
+        if (defect.photoPreview) {
+          URL.revokeObjectURL(defect.photoPreview);
+        }
+      });
       setDefects([]);
 
       // Disparar evento para actualizar listas en otras páginas
@@ -410,6 +494,13 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
                       <span className="font-mono font-semibold">{defect.zone.split(' - ')[0]}</span>
                       {' – '}{defect.zone.split(' - ').slice(1).join(' - ')}
                     </p>
+                    {defect.photoPreview && (
+                      <img
+                        src={defect.photoPreview}
+                        alt="Foto del defecto"
+                        className="mt-2 h-14 w-14 rounded-md border border-gray-200 object-cover"
+                      />
+                    )}
                   </div>
                   <button
                     type="button"
@@ -463,12 +554,18 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
       {/* Modal para agregar defecto */}
       <Modal
         isOpen={isDefectModalOpen}
-        onClose={() => setIsDefectModalOpen(false)}
+        onClose={() => {
+          resetNewDefect();
+          setIsDefectModalOpen(false);
+        }}
         title="Agregar Defecto"
         size="md"
         footer={
           <div className="flex gap-2">
-            <Button onClick={() => setIsDefectModalOpen(false)} variant="secondary">
+            <Button onClick={() => {
+              resetNewDefect();
+              setIsDefectModalOpen(false);
+            }} variant="secondary">
               Cancelar
             </Button>
             <Button
@@ -524,6 +621,23 @@ export const ReportForm = ({ includeProvider = false }: ReportFormProps) => {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-gray-900">Foto de Evidencia (opcional)</label>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(event) => handleDefectPhotoChange(event.target.files?.[0] ?? null)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+            {newDefect.photoPreview && (
+              <img
+                src={newDefect.photoPreview}
+                alt="Vista previa"
+                className="mt-2 h-24 w-24 rounded-md border border-gray-200 object-cover"
+              />
+            )}
           </div>
 
           <div className="p-3 bg-blue-50 rounded-lg text-sm text-blue-900">

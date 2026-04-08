@@ -60,6 +60,7 @@ export interface UnitDefect {
   zone: string;
   grade: 'V1' | 'V2' | 'V3';
   description?: string;
+  photoUrls?: string[];
   isResolved: boolean;
 }
 

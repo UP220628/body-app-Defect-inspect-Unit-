@@ -21,7 +21,7 @@ const defectTypes = damageTypes.map((item) => `${item.code} - ${item.label}`);
 const zones = componentZones.map((item) => `${item.code} - ${item.label}`);
 const grades = ['V1', 'V2', 'V3'] as const;
 
-type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; updatedById?: number; updatedAt?: string };
+type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; photoUrls?: string[]; updatedById?: number; updatedAt?: string };
 type Unit = {
   id: number;
   vin: string;
@@ -29,6 +29,14 @@ type Unit = {
   lane: string;
   statusName: string;
   defects?: Defect[];
+};
+
+type NewDefectDraft = {
+  type: string;
+  zone: string;
+  grade: 'V1' | 'V2' | 'V3';
+  photoFile?: File;
+  photoPreview?: string;
 };
 
 type TabKey = 'nivelacion' | 'entregar' | 'liberar' | 'Reportar unidad';
@@ -46,13 +54,75 @@ export default function Page() {
   const [allUnits, setAllUnits] = useState<Unit[]>([]);
   const [selected, setSelected] = useState<Unit | null>(null);
   const [isAddDefectFormOpen, setIsAddDefectFormOpen] = useState(false);
-  const [newDefect, setNewDefect] = useState({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' as 'V1'|'V2'|'V3' });
+  const [newDefect, setNewDefect] = useState<NewDefectDraft>({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
   const [editingDefect, setEditingDefect] = useState<Defect | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>('nivelacion');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [wtyUnit, setWtyUnit] = useState<Unit | null>(null);
   const [wtyComment, setWtyComment] = useState('');
+
+  const uploadDefectPhoto = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/blob/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('No se pudo subir la foto del defecto');
+    }
+
+    const payload = await response.json();
+    const uploadedUrl = payload?.data?.url;
+    if (typeof uploadedUrl !== 'string' || uploadedUrl.length === 0) {
+      throw new Error('Respuesta inválida al subir la foto del defecto');
+    }
+
+    return uploadedUrl;
+  };
+
+  const cleanupUploadedPhotos = async (urls: string[]) => {
+    if (urls.length === 0) return;
+
+    try {
+      await fetch('/api/blob/cleanup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ urls }),
+      });
+    } catch {
+      // Best-effort cleanup when defect creation fails.
+    }
+  };
+
+  const resetNewDefect = () => {
+    if (newDefect.photoPreview) {
+      URL.revokeObjectURL(newDefect.photoPreview);
+    }
+    setNewDefect({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
+  };
+
+  const handleNewDefectPhoto = (file: File | null) => {
+    if (newDefect.photoPreview) {
+      URL.revokeObjectURL(newDefect.photoPreview);
+    }
+
+    if (!file) {
+      setNewDefect((prev) => ({ ...prev, photoFile: undefined, photoPreview: undefined }));
+      return;
+    }
+
+    setNewDefect((prev) => ({
+      ...prev,
+      photoFile: file,
+      photoPreview: URL.createObjectURL(file),
+    }));
+  };
 
   // Unidades por pestaña
   const reportedUnits = useMemo(() => allUnits.filter(u => u.statusName === 'REPORTED'), [allUnits]);
@@ -122,24 +192,41 @@ export default function Page() {
   const openInspect = (unit: Unit) => {
     setSelected(unit);
     setIsAddDefectFormOpen(false);
+    resetNewDefect();
   };
 
   const handleAddDefect = async () => {
     if (!selected || !newDefect.type || !newDefect.zone || !newDefect.grade) return;
+    let uploadedUrl: string | null = null;
+
     try {
+      if (newDefect.photoFile) {
+        uploadedUrl = await uploadDefectPhoto(newDefect.photoFile);
+      }
+
       const resp = await fetch(`${API_BASE}/units/${selected.id}/defects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ defectType: newDefect.type, zone: newDefect.zone, grade: newDefect.grade, registeredById: user?.id })
+        body: JSON.stringify({
+          defectType: newDefect.type,
+          zone: newDefect.zone,
+          grade: newDefect.grade,
+          registeredById: user?.id,
+          photoUrls: uploadedUrl ? [uploadedUrl] : [],
+        })
       });
       const json = await resp.json();
       if (json?.ok) {
         const updatedUnit = json.data;
         setAllUnits(prev => prev.map(u => u.id === updatedUnit.id ? { ...u, defects: updatedUnit.defects } : u));
         setSelected(updatedUnit);
-        setNewDefect({ type: DEFAULT_DEFECT_TYPE, zone: DEFAULT_ZONE, grade: 'V2' });
+        resetNewDefect();
       }
-    } catch { /* Error */ }
+    } catch {
+      if (uploadedUrl) {
+        await cleanupUploadedPhotos([uploadedUrl]);
+      }
+    }
   };
 
   const handleEditDefect = async (defectId: number, newGrade: 'V1'|'V2'|'V3') => {
@@ -365,6 +452,7 @@ export default function Page() {
         onClose={() => {
           setSelected(null);
           setIsAddDefectFormOpen(false);
+          resetNewDefect();
         }}
         title={`Inspeccionar: ${selected?.vin ?? ''}`}
         size="lg"
@@ -460,6 +548,13 @@ export default function Page() {
                           <span className="font-mono text-gray-500">{splitCatalogValue(d.zone).code}</span>
                           {splitCatalogValue(d.zone).label ? ` - ${splitCatalogValue(d.zone).label}` : ''}
                         </p>
+                        {d.photoUrls?.[0] && (
+                          <img
+                            src={d.photoUrls[0]}
+                            alt="Foto del defecto"
+                            className="mt-2 h-12 w-12 rounded-md border border-gray-200 object-cover"
+                          />
+                        )}
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                         <GradeBadge grade={d.grade}>{d.grade}</GradeBadge>
@@ -518,6 +613,22 @@ export default function Page() {
                       ))}
                     </div>
                     <p className="text-[10px] sm:text-xs text-gray-600 mt-2 sm:mt-3 p-2 bg-blue-50 rounded leading-relaxed">V1=Grave (obligatorio Body) | V2/V3=Leve/Moderado (Body o solicitar validación WTY para liberar directo)</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Foto de Evidencia (opcional)</label>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(event) => handleNewDefectPhoto(event.target.files?.[0] ?? null)}
+                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs sm:text-sm"
+                    />
+                    {newDefect.photoPreview && (
+                      <img
+                        src={newDefect.photoPreview}
+                        alt="Vista previa"
+                        className="mt-2 h-16 w-16 rounded-md border border-gray-200 object-cover"
+                      />
+                    )}
                   </div>
                   <Button onClick={handleAddDefect} className="w-full px-3 py-2 text-xs sm:text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-md transition-all rounded-lg">
                     +{' '}

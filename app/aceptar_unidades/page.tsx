@@ -14,7 +14,7 @@ import { useAuth } from '@/lib/auth';
 import { useUnitEvents } from '@/lib/useUnitEvents';
 import { API_BASE } from '@/lib/api';
 
-type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3' };
+type Defect = { id: number; type: string; zone: string; grade: 'V1'|'V2'|'V3'; photoUrls?: string[] };
 type Unit = {
   id: number;
   vin: string;
@@ -292,9 +292,18 @@ export default function Page() {
                   <div className="space-y-2 p-4 bg-gray-50 rounded-lg max-h-48 overflow-y-auto">
                     {(selectedUnit.defects || []).map((d) => (
                       <div key={d.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded">
-                        <div>
+                        <div className="flex items-start gap-3">
+                          {d.photoUrls?.[0] && (
+                            <img
+                              src={d.photoUrls[0]}
+                              alt="Foto del defecto"
+                              className="h-12 w-12 rounded-md border border-gray-200 object-cover"
+                            />
+                          )}
+                          <div>
                           <p className="font-semibold text-sm">{d.type}</p>
                           <p className="text-xs text-gray-600">{d.zone}</p>
+                          </div>
                         </div>
                         <GradeBadge grade={d.grade}>{d.grade}</GradeBadge>
                       </div>

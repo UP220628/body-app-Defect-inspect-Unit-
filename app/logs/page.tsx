@@ -57,10 +57,12 @@ type UnitDefectDetail = {
   type: string;
   zone: string;
   grade: string;
+  photoUrls?: string[];
   isResolved?: boolean;
 };
 
 type UnitDefectsModalData = {
+  unitId: number;
   vin: string;
   market: string;
   lane: string;
@@ -95,6 +97,7 @@ export default function Page (){
   const [selectedUnitDefects, setSelectedUnitDefects] = useState<UnitDefectsModalData | null>(null);
   const [isDefectsModalOpen, setIsDefectsModalOpen] = useState(false);
   const [loadingDefects, setLoadingDefects] = useState(false);
+  const [deletingPhotoDefectId, setDeletingPhotoDefectId] = useState<number | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<HistoryUnit | null>(null);
   const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -218,7 +221,7 @@ export default function Page (){
   const handleViewDefects = async (unit: HistoryUnit) => {
     if (!token) return;
     setLoadingDefects(true);
-    setSelectedUnitDefects({ vin: unit.vin, market: unit.market, lane: unit.lane, defects: [] });
+    setSelectedUnitDefects({ unitId: unit.unitId, vin: unit.vin, market: unit.market, lane: unit.lane, defects: [] });
     setIsDefectsModalOpen(true);
     try {
       const res = await fetch(`${API_BASE}/units/${unit.unitId}`, {
@@ -227,6 +230,7 @@ export default function Page (){
       const data = await res.json();
       if (data?.ok) {
         setSelectedUnitDefects({
+          unitId: data.data.id ?? unit.unitId,
           vin: data.data.vin,
           market: data.data.market,
           lane: data.data.lane,
@@ -238,6 +242,43 @@ export default function Page (){
       // mantener modal abierto con datos vacíos
     } finally {
       setLoadingDefects(false);
+    }
+  };
+
+  const handleDeleteDefectPhoto = async (defectId: number) => {
+    if (!selectedUnitDefects || !token) {
+      return;
+    }
+
+    setDeletingPhotoDefectId(defectId);
+    try {
+      const response = await fetch(`${API_BASE}/units/${selectedUnitDefects.unitId}/defects/${defectId}/photo`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error || 'No se pudo eliminar la foto');
+      }
+
+      setSelectedUnitDefects((prev) => {
+        if (!prev) {
+          return prev;
+        }
+
+        return {
+          ...prev,
+          defects: Array.isArray(payload.data?.defects) ? payload.data.defects : prev.defects,
+        };
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'No se pudo eliminar la foto';
+      alert(message);
+    } finally {
+      setDeletingPhotoDefectId(null);
     }
   };
 
@@ -680,7 +721,9 @@ export default function Page (){
                         <TableHeadCell className="px-3 py-2 text-xs">Tipo</TableHeadCell>
                         <TableHeadCell className="px-3 py-2 text-xs">Zona</TableHeadCell>
                         <TableHeadCell className="px-3 py-2 text-xs">Grado</TableHeadCell>
+                        <TableHeadCell className="px-3 py-2 text-xs">Foto</TableHeadCell>
                         <TableHeadCell className="px-3 py-2 text-xs">Estado</TableHeadCell>
+                        {isAdminOrScm && <TableHeadCell className="px-3 py-2 text-xs">Acciones</TableHeadCell>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -699,6 +742,17 @@ export default function Page (){
                             </span>
                           </TableCell>
                           <TableCell className="px-3 py-2 text-sm">
+                            {defect.photoUrls?.[0] ? (
+                              <img
+                                src={defect.photoUrls[0]}
+                                alt="Foto del defecto"
+                                className="h-12 w-12 rounded-md border border-gray-200 object-cover"
+                              />
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="px-3 py-2 text-sm">
                             {defect.isResolved ? (
                               <span className="inline-flex items-center gap-1 text-green-700 text-xs font-semibold">
                                 <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -715,6 +769,22 @@ export default function Page (){
                               </span>
                             )}
                           </TableCell>
+                          {isAdminOrScm && (
+                            <TableCell className="px-3 py-2 text-sm">
+                              {defect.id && defect.photoUrls?.[0] ? (
+                                <Button
+                                  size="xs"
+                                  onClick={() => handleDeleteDefectPhoto(defect.id!)}
+                                  disabled={deletingPhotoDefectId === defect.id}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                  {deletingPhotoDefectId === defect.id ? 'Eliminando...' : 'Eliminar foto'}
+                                </Button>
+                              ) : (
+                                <span className="text-gray-400">-</span>
+                              )}
+                            </TableCell>
+                          )}
                         </TableRow>
                       ))}
                     </TableBody>
