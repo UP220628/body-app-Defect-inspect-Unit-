@@ -61,6 +61,7 @@ export default function Page() {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [wtyUnit, setWtyUnit] = useState<Unit | null>(null);
   const [wtyComment, setWtyComment] = useState('');
+  const [viewerPhoto, setViewerPhoto] = useState<{ url: string; defectLabel: string } | null>(null);
 
   const uploadDefectPhoto = async (file: File): Promise<string> => {
     const formData = new FormData();
@@ -453,6 +454,7 @@ export default function Page() {
           setSelected(null);
           setIsAddDefectFormOpen(false);
           resetNewDefect();
+          setViewerPhoto(null);
         }}
         title={`Inspeccionar: ${selected?.vin ?? ''}`}
         size="lg"
@@ -548,12 +550,27 @@ export default function Page() {
                           <span className="font-mono text-gray-500">{splitCatalogValue(d.zone).code}</span>
                           {splitCatalogValue(d.zone).label ? ` - ${splitCatalogValue(d.zone).label}` : ''}
                         </p>
-                        {d.photoUrls?.[0] && (
-                          <img
-                            src={d.photoUrls[0]}
-                            alt="Foto del defecto"
-                            className="mt-2 h-12 w-12 rounded-md border border-gray-200 object-cover"
-                          />
+                        {(d.photoUrls?.length ?? 0) > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {(d.photoUrls ?? []).map((photoUrl, photoIndex) => (
+                              <button
+                                key={`${d.id}-${photoIndex}`}
+                                type="button"
+                                onClick={() => setViewerPhoto({
+                                  url: photoUrl,
+                                  defectLabel: splitCatalogValue(d.type).code,
+                                })}
+                                className="rounded-md border border-gray-200 p-0.5 transition hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                aria-label="Abrir foto del defecto"
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt={`Foto del defecto ${splitCatalogValue(d.type).code}`}
+                                  className="h-12 w-12 rounded object-cover"
+                                />
+                              </button>
+                            ))}
+                          </div>
                         )}
                       </div>
                       <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
@@ -688,6 +705,27 @@ export default function Page() {
           </div>
         )}
       </Modal>
+
+      <Modal
+        isOpen={!!viewerPhoto}
+        onClose={() => setViewerPhoto(null)}
+        title={`Foto de defecto ${viewerPhoto?.defectLabel ? `- ${viewerPhoto.defectLabel}` : ''}`}
+        size="xl"
+      >
+        {viewerPhoto && (
+          <div className="space-y-3">
+            <div className="flex justify-center">
+              <img
+                src={viewerPhoto.url}
+                alt={`Vista ampliada defecto ${viewerPhoto.defectLabel}`}
+                className="max-h-[70vh] w-auto max-w-full rounded-lg border border-gray-200 bg-gray-50 object-contain"
+              />
+            </div>
+            <p className="text-center text-xs text-gray-500">Haz clic fuera de la ventana para cerrar.</p>
+          </div>
+        )}
+      </Modal>
+
       {/* Modal - WTY: comentario y confirmación de solicitud */}
       <Modal
         isOpen={!!wtyUnit}

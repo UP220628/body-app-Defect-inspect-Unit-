@@ -28,6 +28,7 @@ type Unit = {
   scmDecidedBy?: string;
   statusUpdatedAt?: string;
   createdAt: string;
+  hasDefectPhotos?: boolean;
   deletionRequestId?: number;
   deletionRequestStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
   deletionRequestReason?: string;
@@ -36,6 +37,20 @@ type Unit = {
   deletionDecidedAt?: string;
   deletionRequestedBy?: string;
   deletionDecidedBy?: string;
+};
+
+type UnitDefectPhotoDetail = {
+  id: number;
+  type: string;
+  zone: string;
+  grade: string;
+  photoUrls?: string[];
+};
+
+type UnitPhotoDetail = {
+  id: number;
+  vin: string;
+  defects: UnitDefectPhotoDetail[];
 };
 
 const DECISION_LABELS: Record<string, string> = {
@@ -70,6 +85,10 @@ export const DailyTrackingWidget = () => {
   const [isDeleteReviewModal, setIsDeleteReviewModal] = useState(false);
   const [reviewDecision, setReviewDecision] = useState<'APPROVE' | 'REJECT'>('REJECT');
   const [reviewNote, setReviewNote] = useState('');
+  const [photoDetailUnit, setPhotoDetailUnit] = useState<UnitPhotoDetail | null>(null);
+  const [photoDetailLoading, setPhotoDetailLoading] = useState(false);
+  const [expandedPhoto, setExpandedPhoto] = useState<{ url: string; title: string } | null>(null);
+  const [photoCache, setPhotoCache] = useState<Record<number, UnitPhotoDetail>>({});
 
   const formatMexicoDateTime = (value?: string) => {
     if (!value) return '';
@@ -245,6 +264,49 @@ export const DailyTrackingWidget = () => {
     setIsDeleteReviewModal(true);
   };
 
+  const closePhotoModal = () => {
+    setPhotoDetailUnit(null);
+    setPhotoDetailLoading(false);
+    setExpandedPhoto(null);
+  };
+
+  const handleOpenPhotoModal = async (unit: Unit) => {
+    if (!token) return;
+
+    const cached = photoCache[unit.id];
+    if (cached) {
+      setPhotoDetailUnit(cached);
+      return;
+    }
+
+    setPhotoDetailLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/units/${unit.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload?.ok) {
+        throw new Error('No se pudieron cargar las fotos');
+      }
+
+      const detail: UnitPhotoDetail = {
+        id: payload.data.id,
+        vin: payload.data.vin,
+        defects: Array.isArray(payload.data.defects) ? payload.data.defects : [],
+      };
+
+      setPhotoCache((prev) => ({ ...prev, [unit.id]: detail }));
+      setPhotoDetailUnit(detail);
+    } catch (error) {
+      alert('No se pudieron cargar las fotos de la unidad');
+    } finally {
+      setPhotoDetailLoading(false);
+    }
+  };
+
   const handleSubmitDeleteReview = async () => {
     if (!selectedUnit?.deletionRequestId) return;
 
@@ -390,6 +452,19 @@ export const DailyTrackingWidget = () => {
                             ) : null}
                             {extraDefectCountLabel(unit.activeDefectCount)}
                           </p>
+                        )}
+                        {unit.hasDefectPhotos && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPhotoModal(unit)}
+                            className="mt-2 inline-flex min-h-9 items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Ver fotos de la unidad"
+                          >
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Ver fotos</span>
+                          </button>
                         )}
                       </div>
                       <StatusBadge status={unit.statusName} />
@@ -571,6 +646,21 @@ export const DailyTrackingWidget = () => {
                                 {extraDefectCountLabel(unit.activeDefectCount)}
                               </p>
                             ) : null}
+                            {unit.hasDefectPhotos && (
+                              <div className="mt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenPhotoModal(unit)}
+                                  className="inline-flex min-h-9 items-center justify-center rounded-md border border-blue-200 bg-blue-50 px-2 text-blue-700 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  aria-label="Ver fotos de la unidad"
+                                  title="Ver fotos"
+                                >
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-8h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">Sin defecto</span>
@@ -803,6 +893,78 @@ export const DailyTrackingWidget = () => {
           </div>
         </Modal>
       )}
+
+      <Modal
+        isOpen={photoDetailLoading || !!photoDetailUnit}
+        onClose={closePhotoModal}
+        title={photoDetailUnit ? `Fotos de unidad ${photoDetailUnit.vin}` : 'Fotos de unidad'}
+        size="xl"
+      >
+        {photoDetailLoading ? (
+          <div className="flex justify-center py-8">
+            <TowTruckLoader label="Cargando fotos..." size="md" className="w-full max-w-xs" />
+          </div>
+        ) : (
+          (() => {
+            const defectsWithPhotos = (photoDetailUnit?.defects || []).filter(
+              (defect) => Array.isArray(defect.photoUrls) && defect.photoUrls.length > 0,
+            );
+
+            if (!photoDetailUnit || defectsWithPhotos.length === 0) {
+              return <p className="text-sm text-gray-600">Esta unidad no tiene fotos de evidencia disponibles.</p>;
+            }
+
+            return (
+              <div className="space-y-4">
+                {defectsWithPhotos.map((defect) => (
+                  <div key={defect.id} className="rounded-lg border border-gray-200 p-3">
+                    <p className="mb-2 text-sm font-semibold text-gray-800">
+                      {defect.grade} - {defect.type} ({defect.zone})
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                      {(defect.photoUrls || []).map((photoUrl, index) => (
+                        <button
+                          key={`${defect.id}-${index}`}
+                          type="button"
+                          onClick={() => setExpandedPhoto({
+                            url: photoUrl,
+                            title: `${defect.grade} - ${defect.type}`,
+                          })}
+                          className="overflow-hidden rounded-md border border-gray-200 transition hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          aria-label="Abrir foto en tamaño completo"
+                        >
+                          <img
+                            src={photoUrl}
+                            alt={`Evidencia ${defect.type}`}
+                            className="h-24 w-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!expandedPhoto}
+        onClose={() => setExpandedPhoto(null)}
+        title={expandedPhoto?.title || 'Foto'}
+        size="xl"
+      >
+        {expandedPhoto && (
+          <div className="flex justify-center">
+            <img
+              src={expandedPhoto.url}
+              alt={expandedPhoto.title}
+              className="max-h-[70vh] w-auto max-w-full rounded-lg border border-gray-200 object-contain"
+            />
+          </div>
+        )}
+      </Modal>
     </>
   );
 };
