@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const refreshRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Limpiar intervalo de refresh
   const clearRefreshInterval = () => {
@@ -42,16 +43,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const clearRefreshRetry = () => {
+    if (refreshRetryTimeoutRef.current) {
+      clearTimeout(refreshRetryTimeoutRef.current);
+      refreshRetryTimeoutRef.current = null;
+    }
+  };
+
+  const clearStoredAuth = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('refreshToken');
+    document.cookie = 'authToken=; path=/; max-age=0; SameSite=Strict';
+  };
+
+  const persistTokens = (accessToken: string, refreshToken: string) => {
+    setToken(accessToken);
+    localStorage.setItem('authToken', accessToken);
+    localStorage.setItem('refreshToken', refreshToken);
+    document.cookie = `authToken=${accessToken}; path=/; max-age=${15 * 60}; SameSite=Strict`;
+  };
+
+  type RefreshResult = {
+    ok: boolean;
+    shouldLogout: boolean;
+    accessToken?: string;
+    refreshToken?: string;
+  };
+
   // Auto-refresh del token
   const setupAutoRefresh = (refreshToken: string) => {
     clearRefreshInterval();
+    clearRefreshRetry();
     
-    refreshIntervalRef.current = setInterval(() => {
-      refreshAccessToken(refreshToken);
+    refreshIntervalRef.current = setInterval(async () => {
+      const result = await refreshAccessToken(refreshToken);
+      if (!result.ok && result.shouldLogout) {
+        logout();
+      }
     }, TOKEN_REFRESH_INTERVAL);
   };
 
-  const refreshAccessToken = async (refreshToken: string) => {
+  const refreshAccessToken = async (refreshToken: string): Promise<RefreshResult> => {
     try {
       const response = await fetch(`${API_BASE}/auth/refresh`, {
         method: 'POST',
@@ -62,9 +94,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!response.ok) {
-        // Si falla el refresh, logout del usuario
-        logout();
-        return;
+        return {
+          ok: false,
+          shouldLogout: response.status === 401 || response.status === 403,
+        };
       }
 
       const data = await response.json();
@@ -73,20 +106,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const newAccessToken = data.data.token;
         const newRefreshToken = data.data.refreshToken;
         
-        setToken(newAccessToken);
-        localStorage.setItem('authToken', newAccessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
-        document.cookie = `authToken=${newAccessToken}; path=/; max-age=${15 * 60}; SameSite=Strict`;
+        persistTokens(newAccessToken, newRefreshToken);
         
         // Configurar siguiente refresh con el nuevo refresh token
         setupAutoRefresh(newRefreshToken);
+
+        return {
+          ok: true,
+          shouldLogout: false,
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        };
       }
+
+      return { ok: false, shouldLogout: true };
     } catch (error) {
       if (process.env.NODE_ENV !== 'production') {
         console.error('Error refrescando token');
       }
-      logout();
+      return { ok: false, shouldLogout: false };
     }
+  };
+
+  const scheduleRefreshRetry = (refreshToken: string) => {
+    if (refreshRetryTimeoutRef.current) {
+      return;
+    }
+
+    refreshRetryTimeoutRef.current = setTimeout(async () => {
+      refreshRetryTimeoutRef.current = null;
+      const result = await refreshAccessToken(refreshToken);
+      if (!result.ok && result.shouldLogout) {
+        logout();
+      } else if (!result.ok) {
+        scheduleRefreshRetry(refreshToken);
+      }
+    }, 60 * 1000);
   };
 
   // Verificar si hay un token guardado al cargar la aplicaciÃ³n
@@ -105,6 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     return () => {
       clearRefreshInterval();
+      clearRefreshRetry();
     };
   }, []);
 
@@ -122,21 +178,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (data.ok && data.valid) {
           setToken(token);
+          document.cookie = `authToken=${token}; path=/; max-age=${15 * 60}; SameSite=Strict`;
           // Obtener informaciÃ³n completa del usuario
           await fetchUserData(token);
           // Configurar auto-refresh
           setupAutoRefresh(refreshToken);
         } else {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('refreshToken');
+          const refreshed = await refreshAccessToken(refreshToken);
+          if (refreshed.ok && refreshed.accessToken) {
+            await fetchUserData(refreshed.accessToken);
+            return;
+          }
+          clearStoredAuth();
         }
       } else {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
+        if (response.status === 401 || response.status === 403) {
+          const refreshed = await refreshAccessToken(refreshToken);
+          if (refreshed.ok && refreshed.accessToken) {
+            await fetchUserData(refreshed.accessToken);
+            return;
+          }
+          clearStoredAuth();
+        } else {
+          scheduleRefreshRetry(refreshToken);
+        }
       }
     } catch (error) {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('refreshToken');
+      scheduleRefreshRetry(refreshToken);
     } finally {
       setIsLoading(false);
     }
@@ -184,14 +252,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { user: userData, token: accessToken, refreshToken } = result.data;
       
       setUser(userData);
-      setToken(accessToken);
-      
-      // Guardar tokens en localStorage
-      localStorage.setItem('authToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      
-      // Guardar token en cookies para el middleware (solo access token, ÐºÐ¾Ñ€Ð¾Ñ‚ÐºÐ¸Ð¹)
-      document.cookie = `authToken=${accessToken}; path=/; max-age=${15 * 60}; SameSite=Strict`;
+      persistTokens(accessToken, refreshToken);
       
       // Configurar auto-refresh
       setupAutoRefresh(refreshToken);
@@ -204,6 +265,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     clearRefreshInterval();
+    clearRefreshRetry();
     
     // Notificar al servidor para revocar tokens
     if (token) {
@@ -221,9 +283,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     
     setUser(null);
     setToken(null);
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('refreshToken');
-    document.cookie = 'authToken=; path=/; max-age=0; SameSite=Strict';
+    clearStoredAuth();
     
     router.push('/');
   };

@@ -13,20 +13,25 @@ type UseUnitEventsOptions = {
 export const useUnitEvents = ({ token, onEvent }: UseUnitEventsOptions) => {
   const abortRef = useRef<AbortController | null>(null);
   const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onEventRef = useRef<UnitEventHandler>(onEvent);
+
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
 
   useEffect(() => {
     if (!token) return;
 
     let closed = false;
 
-    const scheduleRetry = () => {
+    const scheduleRetry = (delayMs = 5000) => {
       if (!closed && !retryRef.current) {
         retryRef.current = setTimeout(() => {
           retryRef.current = null;
           if (!closed) {
             void connect();
           }
-        }, 5000);
+        }, delayMs);
       }
     };
 
@@ -44,7 +49,7 @@ export const useUnitEvents = ({ token, onEvent }: UseUnitEventsOptions) => {
       }
 
       if (eventName === 'unit-update') {
-        onEvent();
+        onEventRef.current();
       }
     };
 
@@ -61,6 +66,11 @@ export const useUnitEvents = ({ token, onEvent }: UseUnitEventsOptions) => {
           cache: 'no-store',
           signal: controller.signal,
         });
+
+        if (response.status === 401 || response.status === 403) {
+          scheduleRetry(15000);
+          return;
+        }
 
         if (!response.ok || !response.body) {
           throw new Error('SSE connection failed');
@@ -87,7 +97,9 @@ export const useUnitEvents = ({ token, onEvent }: UseUnitEventsOptions) => {
 
         scheduleRetry();
       } catch (_error) {
-        scheduleRetry();
+        if (!controller.signal.aborted) {
+          scheduleRetry();
+        }
       } finally {
         if (abortRef.current === controller) {
           abortRef.current = null;
@@ -106,5 +118,5 @@ export const useUnitEvents = ({ token, onEvent }: UseUnitEventsOptions) => {
       abortRef.current?.abort();
       abortRef.current = null;
     };
-  }, [token, onEvent]);
+  }, [token]);
 };
