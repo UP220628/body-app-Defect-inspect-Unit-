@@ -3,7 +3,6 @@
 Aplicación web diseñada para dar visibilidad en la parte de planchas para madrinas, enfocada en la detección y trazabilidad de defectos y reparaciones de unidades vehiculares.
 
 **Stack:** Next.js 16 · React 19 · TypeScript · Tailwind CSS · MUI · Recharts
-
 ---
 
 ## Cómo correr
